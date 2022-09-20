@@ -20,6 +20,7 @@ import java.io.Serializable;
 
 /**
  * Record to transfer and store in Nacos cluster.
+ * 记录传输并存储在Nacos集群中
  *
  * @author nkorange
  * @since 1.0.0

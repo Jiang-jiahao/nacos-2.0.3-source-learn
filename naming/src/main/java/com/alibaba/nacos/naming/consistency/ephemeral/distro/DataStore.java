@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Store of data.
+ * 存储的数据
  *
  * @author nkorange
  * @since 1.0.0

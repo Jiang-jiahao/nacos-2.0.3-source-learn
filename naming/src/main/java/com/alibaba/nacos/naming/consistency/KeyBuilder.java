@@ -53,7 +53,8 @@ public class KeyBuilder {
     private static String buildPersistentInstanceListKey(String namespaceId, String serviceName) {
         return INSTANCE_LIST_KEY_PREFIX + namespaceId + NAMESPACE_KEY_CONNECTOR + serviceName;
     }
-    
+
+    // 生成实例集合的key
     public static String buildInstanceListKey(String namespaceId, String serviceName, boolean ephemeral) {
         return ephemeral ? buildEphemeralInstanceListKey(namespaceId, serviceName)
                 : buildPersistentInstanceListKey(namespaceId, serviceName);

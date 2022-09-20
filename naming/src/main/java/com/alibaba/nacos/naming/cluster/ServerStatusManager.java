@@ -28,36 +28,43 @@ import java.util.Optional;
 
 /**
  * Detect and control the working status of local server.
+ * 检测和控制本地服务器的工作状态。
  *
  * @author nkorange
  * @since 1.0.0
  */
 @Service
 public class ServerStatusManager {
-    
+
+    // 一致性服务
     @Resource(name = "consistencyDelegate")
     private ConsistencyService consistencyService;
-    
+
+    // 转换领域
     private final SwitchDomain switchDomain;
-    
+
+    // 服务器状态（默认为启动中，下一个状态通常是UP）
     private ServerStatus serverStatus = ServerStatus.STARTING;
     
     public ServerStatusManager(SwitchDomain switchDomain) {
         this.switchDomain = switchDomain;
     }
-    
+
+    // 激活服务器状态更新器
     @PostConstruct
     public void init() {
         GlobalExecutor.registerServerStatusUpdater(new ServerStatusUpdater());
     }
-    
+
+    // 刷新服务器状态
     private void refreshServerStatus() {
         
         if (StringUtils.isNotBlank(switchDomain.getOverriddenServerStatus())) {
             serverStatus = ServerStatus.valueOf(switchDomain.getOverriddenServerStatus());
             return;
         }
-        
+
+        // 如果一致性服务不可用，则更新状态为down（服务已停用），反之更新为up（服务已启动）
         if (consistencyService.isAvailable()) {
             serverStatus = ServerStatus.UP;
         } else {
@@ -72,7 +79,8 @@ public class ServerStatusManager {
     public Optional<String> getErrorMsg() {
         return consistencyService.getErrorMsg();
     }
-    
+
+    // 服务器状态更新器
     public class ServerStatusUpdater implements Runnable {
         
         @Override

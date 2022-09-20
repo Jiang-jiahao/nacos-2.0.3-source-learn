@@ -73,6 +73,7 @@ import static com.alibaba.nacos.naming.misc.UtilsAndCommons.UPDATE_INSTANCE_META
 
 /**
  * Core manager storing all services in Nacos.
+ * 在Nacos中存储所有服务的核心管理器
  *
  * @author nkorange
  */

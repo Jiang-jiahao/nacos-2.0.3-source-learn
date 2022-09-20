@@ -106,6 +106,7 @@ public class DistroProtocol {
     
     /**
      * Start to sync data to all remote server.
+     * 开始同步数据到所有远程服务器
      *
      * @param distroKey distro key of sync data
      * @param action    the action of data operation
@@ -119,6 +120,7 @@ public class DistroProtocol {
     
     /**
      * Start to sync to target server.
+     * 开始同步到目标服务器
      *
      * @param distroKey    distro key of sync data
      * @param action       the action of data operation

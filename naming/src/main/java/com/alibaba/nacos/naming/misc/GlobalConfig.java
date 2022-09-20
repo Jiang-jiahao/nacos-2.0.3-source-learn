@@ -35,6 +35,7 @@ import static com.alibaba.nacos.naming.constants.Constants.LOAD_DATA_RETRY_DELAY
 
 /**
  * Stores some configurations for Distro protocol.
+ * 存储Distro协议的一些配置
  *
  * @author nkorange
  * @since 1.0.0
