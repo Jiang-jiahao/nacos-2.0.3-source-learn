@@ -72,6 +72,7 @@ public class WebUtils {
     
     /**
      * get target value from parameterMap, if not found will return default value.
+     * 从parameterMap中获取目标值，如果没有找到将返回默认值。
      *
      * @param req          {@link HttpServletRequest}
      * @param key          key

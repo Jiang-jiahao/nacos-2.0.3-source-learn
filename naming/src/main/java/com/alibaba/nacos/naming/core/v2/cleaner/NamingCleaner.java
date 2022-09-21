@@ -18,6 +18,7 @@ package com.alibaba.nacos.naming.core.v2.cleaner;
 
 /**
  * Nacos naming cleaner.
+ * nacos naming 清洁人
  *
  * @author xiweng.yy
  */

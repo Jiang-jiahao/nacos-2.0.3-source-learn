@@ -104,7 +104,7 @@ public class InstanceController {
     @PostMapping
     @Secured(parser = NamingResourceParser.class, action = ActionTypes.WRITE)
     public String register(HttpServletRequest request) throws Exception {
-        
+        // 如果没有namespaceId，则返回public
         final String namespaceId = WebUtils
                 .optional(request, CommonParams.NAMESPACE_ID, Constants.DEFAULT_NAMESPACE_ID);
         final String serviceName = WebUtils.required(request, CommonParams.SERVICE_NAME);

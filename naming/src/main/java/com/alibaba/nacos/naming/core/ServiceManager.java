@@ -494,7 +494,7 @@ public class ServiceManager implements RecordListener<Service> {
      * @throws Exception any error occurred in the process
      */
     public void registerInstance(String namespaceId, String serviceName, Instance instance) throws NacosException {
-        // 创建服务，没有则不创建
+        // 如果不存在，则创建服务
         createEmptyService(namespaceId, serviceName, instance.isEphemeral());
         // 获取该服务
         Service service = getService(namespaceId, serviceName);
@@ -778,10 +778,10 @@ public class ServiceManager implements RecordListener<Service> {
      */
     public List<Instance> updateIpAddresses(Service service, String action, boolean ephemeral, Instance... ips)
             throws NacosException {
-        // 从nacos集群获取数据
+        // 获取服务的相关数据
         Datum datum = consistencyService
                 .get(KeyBuilder.buildInstanceListKey(service.getNamespaceId(), service.getName(), ephemeral));
-        
+        // 获取该服务下所有集群的所有的临时/持久实例
         List<Instance> currentIPs = service.allIPs(ephemeral);
         Map<String, Instance> currentInstances = new HashMap<>(currentIPs.size());
         Set<String> currentInstanceIds = Sets.newHashSet();
@@ -799,6 +799,7 @@ public class ServiceManager implements RecordListener<Service> {
         }
         
         for (Instance instance : ips) {
+            // 判断新增的实例对应的集群是否存在，不存在则新增
             if (!service.getClusterMap().containsKey(instance.getClusterName())) {
                 Cluster cluster = new Cluster(instance.getClusterName(), service);
                 cluster.init();

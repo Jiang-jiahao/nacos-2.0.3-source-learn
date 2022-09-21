@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Expired metadata cleaner.
+ * 元数据过期清理者
  *
  * @author xiweng.yy
  */

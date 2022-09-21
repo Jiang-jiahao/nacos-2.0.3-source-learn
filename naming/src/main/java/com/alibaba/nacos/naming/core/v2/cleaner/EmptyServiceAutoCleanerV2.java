@@ -49,6 +49,7 @@ public class EmptyServiceAutoCleanerV2 extends AbstractNamingCleaner {
     public EmptyServiceAutoCleanerV2(ClientServiceIndexesManager clientServiceIndexesManager,
             ServiceStorage serviceStorage) {
         this.clientServiceIndexesManager = clientServiceIndexesManager;
+        // 加载该类的时候，在该构造方式设置定时任务执行自动清理空服务任务，每30s执行一次
         this.serviceStorage = serviceStorage;
         GlobalExecutor.scheduleExpiredClientCleaner(this, TimeUnit.SECONDS.toMillis(30),
                 GlobalConfig.getEmptyServiceCleanInterval(), TimeUnit.MILLISECONDS);

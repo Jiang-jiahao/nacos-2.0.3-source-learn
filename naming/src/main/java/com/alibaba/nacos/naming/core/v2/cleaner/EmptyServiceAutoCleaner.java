@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 
 /**
  * Empty Service Auto Cleaner.
+ * 空服务自动清理者
  *
  * @author xiweng.yy
  */
