@@ -52,6 +52,7 @@ import static com.alibaba.nacos.sys.env.Constants.REQUEST_PATH_SEPARATOR;
 
 /**
  * Method cache.
+ * Controller方法缓存
  *
  * @author nkorange
  * @since 1.2.0

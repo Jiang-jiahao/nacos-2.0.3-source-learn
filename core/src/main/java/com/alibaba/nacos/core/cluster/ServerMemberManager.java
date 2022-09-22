@@ -97,11 +97,13 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
     
     /**
      * Cluster node list.
+     * 集群节点列表
      */
     private volatile ConcurrentSkipListMap<String, Member> serverList;
     
     /**
      * Is this node in the cluster list.
+     * 本地节点是否在集群列表中
      */
     private static volatile boolean isInIpList = true;
     
@@ -112,6 +114,7 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
     
     /**
      * Address information for the local node.
+     * 本地节点地址信息
      */
     private String localAddress;
     
@@ -123,16 +126,19 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
     
     /**
      * self member obj.
+     * 当前服务器对象
      */
     private volatile Member self;
     
     /**
      * here is always the node information of the "UP" state.
+     * 启动状态的成员信息
      */
     private volatile Set<String> memberAddressInfos = new ConcurrentHashSet<>();
     
     /**
      * Broadcast this node element information task.
+     * 广播此节点元素信息任务
      */
     private final MemberInfoReportTask infoReportTask = new MemberInfoReportTask();
 
@@ -146,7 +152,7 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
     
     protected void init() throws NacosException {
         Loggers.CORE.info("Nacos-related cluster resource initialization");
-        //设置端口、ip和member
+        //设置本地节点端口、ip和member
         this.port = EnvUtil.getProperty(SERVER_PORT_PROPERTY, Integer.class, DEFAULT_SERVER_PORT);
         this.localAddress = InetUtils.getSelfIP() + ":" + port;
         this.self = MemberUtil.singleParse(this.localAddress);
@@ -163,7 +169,8 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
         registerClusterEvent();
         
         // Initializes the lookup mode
-        //读取cluster.conf文件，根据配置文件信息，判断寻找服务器的地址的模式是什么模式的（文件、单机、地址）
+        // 读取cluster.conf文件，根据配置文件信息，判断寻找服务器的地址的模式是什么模式的（文件、单机、地址）
+        // 如果是有地址服务器的，则去获取并设置定时任务去获取地址
         initAndStartLookup();
         // 如果一个服务器都没有，直接报错
         if (serverList.isEmpty()) {
@@ -184,6 +191,7 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
     private void initAndStartLookup() throws NacosException {
         //创建寻址模式实例
         this.lookup = LookupFactory.createLookUp(this);
+        // 是否使用地址服务器，只有AddressServerMemberLookup是使用的
         isUseAddressServer = this.lookup.useAddressServer();
         this.lookup.start();
     }
@@ -196,8 +204,10 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
      * @throws NacosException exception.
      */
     public void switchLookup(String name) throws NacosException {
+        // 切换寻址模式并停止之前的寻址模式
         this.lookup = LookupFactory.switchLookup(name, this);
         isUseAddressServer = this.lookup.useAddressServer();
+        // 开启新的寻址模式
         this.lookup.start();
     }
 
@@ -212,7 +222,7 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
         NotifyCenter.registerSubscriber(new Subscriber<InetUtils.IPChangeEvent>() {
             @Override
             public void onEvent(InetUtils.IPChangeEvent event) {
-                //节点改变，修改节点信息
+                //节点ip信息改变，修改节点ip信息
                 String newAddress = event.getNewIP() + ":" + port;
                 ServerMemberManager.this.localAddress = newAddress;
                 EnvUtil.setLocalAddress(localAddress);
@@ -255,14 +265,17 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
         }
         
         serverList.computeIfPresent(address, (s, member) -> {
+            // 如果停了，则移除memberAddressInfos集合内容
             if (NodeState.DOWN.equals(newMember.getState())) {
                 memberAddressInfos.remove(newMember.getAddress());
             }
+            // 判断服务器成员的基本信息是否发生了改变
             boolean isPublishChangeEvent = MemberUtil.isBasicInfoChanged(newMember, member);
             newMember.setExtendVal(MemberMetaDataConstants.LAST_REFRESH_TIME, System.currentTimeMillis());
             MemberUtil.copy(newMember, member);
             if (isPublishChangeEvent) {
                 // member basic data changes and all listeners need to be notified
+                // 成员基本数据发生变化，需要通知所有监听器
                 notifyMemberChange(member);
             }
             return member;
@@ -292,6 +305,7 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
         }
         
         // If only IP information is passed in, a fuzzy match is required
+        // 如果只传入ip信息，这里则进行模糊匹配
         for (Map.Entry<String, Member> entry : serverList.entrySet()) {
             if (StringUtils.contains(entry.getKey(), address)) {
                 result = true;
@@ -348,7 +362,8 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
         members.remove(self);
         return members;
     }
-    
+
+    // 修改服务器成员节点
     synchronized boolean memberChange(Collection<Member> members) {
         
         if (members == null || members.isEmpty()) {
@@ -401,9 +416,12 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
         // Persist the current cluster node information to cluster.conf
         // <important> need to put the event publication into a synchronized block to ensure
         // that the event publication is sequential
+        // 如果服务器成员有发生改变
         if (hasChange) {
+            // 写入到cluster.conf文件中
             MemberUtil.syncToFile(finalMembers);
             Event event = MembersChangeEvent.builder().members(finalMembers).build();
+            // 发送通知
             NotifyCenter.publishEvent(event);
         }
         
@@ -412,6 +430,7 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
     
     /**
      * members join this cluster.
+     * 加入服务器成员列表到集群
      *
      * @param members {@link Collection} new members
      * @return is success
@@ -424,6 +443,7 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
     
     /**
      * members leave this cluster.
+     * 移除集群服务器成员列表
      *
      * @param members {@link Collection} wait leave members
      * @return is success
@@ -436,6 +456,7 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
     
     /**
      * this member {@link Member#getState()} is health.
+     * 判断该成员是否健康
      *
      * @param address ip:port
      * @return is health
@@ -447,13 +468,15 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
         }
         return !NodeState.UP.equals(member.getState());
     }
-    
+
+    // 判断该地址是否是第一个
     public boolean isFirstIp() {
         return Objects.equals(serverList.firstKey(), this.localAddress);
     }
     
     @Override
     public void onApplicationEvent(WebServerInitializedEvent event) {
+        // 修改当前服务器成员状态为已启动
         getSelf().setState(NodeState.UP);
         if (!EnvUtil.getStandaloneMode()) {
             GlobalExecutor.scheduleByCommon(this.infoReportTask, DEFAULT_TASK_DELAY_TIME);
@@ -505,7 +528,7 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
     
     // Synchronize the metadata information of a node
     // A health check of the target node is also attached
-    
+
     class MemberInfoReportTask extends Task {
         
         private final GenericType<RestResult<String>> reference = new GenericType<RestResult<String>>() { };
@@ -519,7 +542,7 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
             if (members.isEmpty()) {
                 return;
             }
-            
+            // 循环请求除自己之外的集群node列表
             this.cursor = (this.cursor + 1) % members.size();
             Member target = members.get(cursor);
             
@@ -537,6 +560,7 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
                                 Query.EMPTY, getSelf(), reference.getType(), new Callback<String>() {
                                     @Override
                                     public void onReceive(RestResult<String> result) {
+                                        // 如果返回码包含NOT_IMPLEMENTED 或者 NOT_FOUND 说明对方的版本比较低，需要整个集群降级
                                         if (result.getCode() == HttpStatus.NOT_IMPLEMENTED.value()
                                                 || result.getCode() == HttpStatus.NOT_FOUND.value()) {
                                             Loggers.CLUSTER
@@ -570,11 +594,13 @@ public class ServerMemberManager implements ApplicationListener<WebServerInitial
                                             return;
                                         }
                                         if (result.ok()) {
+                                            // 发布成功事件
                                             MemberUtil.onSuccess(ServerMemberManager.this, target);
                                         } else {
                                             Loggers.CLUSTER
                                                     .warn("failed to report new info to target node : {}, result : {}",
                                                             target.getAddress(), result);
+                                            // 发布失败事件
                                             MemberUtil.onFail(ServerMemberManager.this, target);
                                         }
                                     }

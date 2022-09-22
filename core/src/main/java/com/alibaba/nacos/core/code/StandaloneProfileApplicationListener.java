@@ -46,7 +46,7 @@ public class StandaloneProfileApplicationListener
     public void onApplicationEvent(ApplicationEnvironmentPreparedEvent event) {
         
         ConfigurableEnvironment environment = event.getEnvironment();
-
+        // 如果配置了是单机模式，则激活profile为standalone
         if (environment.getProperty(STANDALONE_MODE_PROPERTY_NAME, boolean.class, false)) {
             environment.addActiveProfile(STANDALONE_SPRING_PROFILE);
         }

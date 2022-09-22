@@ -30,7 +30,7 @@ import java.util.List;
 
 /**
  * {@link org.springframework.boot.SpringApplicationRunListener} before {@link EventPublishingRunListener} execution.
- *
+ * 运行监听器的执行器
  * @author <a href="mailto:mercyblitz@gmail.com">Mercy</a>
  * @since 0.2.2
  */

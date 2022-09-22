@@ -18,6 +18,7 @@ package com.alibaba.nacos.core.cluster;
 
 /**
  * The necessary metadata information for the node.
+ * 节点所需要的元数据信息
  *
  * @author <a href="mailto:liaochunyhm@live.com">liaochuntao</a>
  */

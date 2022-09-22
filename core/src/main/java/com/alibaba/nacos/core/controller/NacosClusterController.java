@@ -107,6 +107,7 @@ public class NacosClusterController {
     
     /**
      * Other nodes return their own metadata information.
+     * 其他节点返回它们自己的元信息
      *
      * @param node {@link Member}
      * @return {@link RestResult}
@@ -117,6 +118,7 @@ public class NacosClusterController {
             return RestResultUtils.failedWithMsg(400, "Node information is illegal");
         }
         LoggerUtils.printIfDebugEnabled(Loggers.CLUSTER, "node state report, receive info : {}", node);
+        // 如果还能接受到其他节点发送过来的请求，则表示节点是正常运行的
         node.setState(NodeState.UP);
         node.setFailAccessCnt(0);
         

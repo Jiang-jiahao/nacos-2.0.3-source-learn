@@ -73,6 +73,7 @@ public final class LookupFactory {
      * @throws NacosException {@link NacosException}
      */
     public static MemberLookup switchLookup(String name, ServerMemberManager memberManager) throws NacosException {
+        // 根据传入的寻址模式，拿到对应的类（这里只支持地址服务器和文件寻址方式，不支持单机）
         LookupType lookupType = LookupType.sourceOf(name);
         
         if (Objects.isNull(lookupType)) {
@@ -80,16 +81,18 @@ public final class LookupFactory {
                     "The addressing mode exists : " + name + ", just support : [" + Arrays.toString(LookupType.values())
                             + "]");
         }
-        
+        // 如果一样，则不改变
         if (Objects.equals(currentLookupType, lookupType)) {
             return LOOK_UP;
         }
         MemberLookup newLookup = find(lookupType);
         currentLookupType = lookupType;
         if (Objects.nonNull(LOOK_UP)) {
+            // 停止原来的寻址模式，服务器寻址则会更改shutdown状态，而文件寻址模式则会取消订阅事件
             LOOK_UP.destroy();
         }
         LOOK_UP = newLookup;
+        // 将服务器成员管理器注入到具体寻址类中
         LOOK_UP.injectMemberManager(memberManager);
         Loggers.CLUSTER.info("Current addressing mode selection : {}", LOOK_UP.getClass().getSimpleName());
         return LOOK_UP;

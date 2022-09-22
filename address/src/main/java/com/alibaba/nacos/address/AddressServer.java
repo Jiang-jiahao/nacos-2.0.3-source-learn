@@ -21,6 +21,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
  * support address server.
+ * 地址服务器
  *
  * @author nacos
  * @since 1.1.0
