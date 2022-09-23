@@ -20,6 +20,7 @@ import java.util.concurrent.Executor;
 
 /**
  * Listener for watch config.
+ * 监听配置的监听器
  *
  * @author Nacos
  */

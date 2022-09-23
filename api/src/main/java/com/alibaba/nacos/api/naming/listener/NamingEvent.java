@@ -22,6 +22,7 @@ import java.util.List;
 
 /**
  * Naming Event.
+ * naming事件
  *
  * @author nkorange
  */

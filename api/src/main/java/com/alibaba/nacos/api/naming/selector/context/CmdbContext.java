@@ -25,6 +25,8 @@ import java.util.List;
 /**
  * The CMDB context is given by the {@link SelectorContextBuilder#build(Object, Object)} and used for the
  * {@link com.alibaba.nacos.api.naming.selector.Selector#select(Object)}.
+ * CMDB上下文由{@link SelectorContextBuilder#build(Object, Object)}给出，
+ * 并用于{@link com.alibaba.nacos.api.naming.selector.Selector#select(Object)}。
  *
  * @author chenglu
  * @date 2021-07-09 21:31

@@ -26,6 +26,7 @@ import java.lang.annotation.Target;
 
 /**
  * An annotation for Nacos Properties.
+ * nacos属性注解
  *
  * @author <a href="mailto:mercyblitz@gmail.com">Mercy</a>
  * @see PropertyKeyConst

@@ -21,6 +21,7 @@ import com.alibaba.nacos.api.exception.NacosException;
 
 /**
  * Config Service Interface.
+ * config服务接口
  *
  * @author Nacos
  */

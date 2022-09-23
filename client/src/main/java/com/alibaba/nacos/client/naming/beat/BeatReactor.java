@@ -44,6 +44,7 @@ import static com.alibaba.nacos.client.utils.LogUtils.NAMING_LOGGER;
 
 /**
  * Beat reactor.
+ * 心跳反应器
  *
  * @author harold
  */

@@ -18,6 +18,7 @@ package com.alibaba.nacos.api.cmdb.pojo;
 
 /**
  * CMDB entity event.
+ * CMD实体事件
  *
  * @author nkorange
  * @since 0.7.0

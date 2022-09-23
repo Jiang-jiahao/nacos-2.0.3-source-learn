@@ -24,6 +24,7 @@ import java.util.Objects;
 
 /**
  * abilities of nacos server.
+ * nacos服务端能力
  *
  * @author liuzunfei
  * @version $Id: ServerAbilities.java, v 0.1 2021年01月24日 00:09 AM liuzunfei Exp $

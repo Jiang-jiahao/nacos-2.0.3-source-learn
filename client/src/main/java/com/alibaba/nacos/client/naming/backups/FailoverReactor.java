@@ -47,6 +47,8 @@ import static com.alibaba.nacos.client.utils.LogUtils.NAMING_LOGGER;
 
 /**
  * Failover reactor.
+ * 故障恢复反应器
+ * 用来做故障转移
  *
  * @author nkorange
  */
@@ -98,6 +100,7 @@ public class FailoverReactor implements Closeable {
         executorService.scheduleWithFixedDelay(new DiskFileWriter(), 30, DAY_PERIOD_MINUTES, TimeUnit.MINUTES);
         
         // backup file on startup if failover directory is empty.
+        // 如果故障转移目录为空，则启动临时备份文件。
         executorService.schedule(new Runnable() {
             @Override
             public void run() {
@@ -151,15 +154,17 @@ public class FailoverReactor implements Closeable {
             try {
                 File switchFile = new File(failoverDir + UtilAndComs.FAILOVER_SWITCH);
                 if (!switchFile.exists()) {
+                    // 如果故障转移文件不存在，则将failover-mode改成false，表示关闭故障转移模式，并返回
                     switchParams.put(FAILOVER_MODE_PARAM, Boolean.FALSE.toString());
                     NAMING_LOGGER.debug("failover switch is not found, " + switchFile.getName());
                     return;
                 }
                 
                 long modified = switchFile.lastModified();
-                
+                // 判断文件的最后修改时间和记录的最后修改时间哪个大
                 if (lastModifiedMillis < modified) {
                     lastModifiedMillis = modified;
+                    // 获取文件内容
                     String failover = ConcurrentDiskUtil.getFileContent(failoverDir + UtilAndComs.FAILOVER_SWITCH,
                             Charset.defaultCharset().toString());
                     if (!StringUtils.isEmpty(failover)) {
@@ -167,9 +172,11 @@ public class FailoverReactor implements Closeable {
                         
                         for (String line : lines) {
                             String line1 = line.trim();
+                            // 如果文本内容时1，则是开启，0则是关闭failover-mode
                             if (IS_FAILOVER_MODE.equals(line1)) {
                                 switchParams.put(FAILOVER_MODE_PARAM, Boolean.TRUE.toString());
                                 NAMING_LOGGER.info("failover-mode is on");
+                                // 将/failover文件中的文件读取成serviceMap
                                 new FailoverFileReader().run();
                             } else if (NO_FAILOVER_MODE.equals(line1)) {
                                 switchParams.put(FAILOVER_MODE_PARAM, Boolean.FALSE.toString());
@@ -177,6 +184,7 @@ public class FailoverReactor implements Closeable {
                             }
                         }
                     } else {
+                        // 没有内容则默认是false
                         switchParams.put(FAILOVER_MODE_PARAM, Boolean.FALSE.toString());
                     }
                 }
@@ -270,7 +278,7 @@ public class FailoverReactor implements Closeable {
                         .equals(serviceInfo.getName(), UtilAndComs.ALL_HOSTS)) {
                     continue;
                 }
-                
+                // 将serviceInfo写入/failover文件中
                 DiskCache.write(serviceInfo, failoverDir);
             }
         }

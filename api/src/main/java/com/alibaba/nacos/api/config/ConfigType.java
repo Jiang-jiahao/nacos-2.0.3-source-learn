@@ -23,6 +23,7 @@ import java.util.Map;
 
 /**
  * Config data type.
+ * 配置数据类型
  *
  * @author liaochuntao
  **/

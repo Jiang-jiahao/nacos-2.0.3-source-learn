@@ -21,6 +21,7 @@ import com.alibaba.nacos.api.naming.ClientNamingAbility;
 
 /**
  * abilities of nacos client.
+ * nacos客户端的能力
  *
  * @author liuzunfei
  * @version $Id: ClientAbilities.java, v 0.1 2021年01月24日 00:09 AM liuzunfei Exp $

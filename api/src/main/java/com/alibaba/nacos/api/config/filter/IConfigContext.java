@@ -18,6 +18,7 @@ package com.alibaba.nacos.api.config.filter;
 
 /**
  * Config Context Interface.
+ * config上下文接口
  *
  * @author Nacos
  */

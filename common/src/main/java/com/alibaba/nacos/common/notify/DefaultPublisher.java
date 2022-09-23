@@ -61,10 +61,14 @@ public class DefaultPublisher extends Thread implements EventPublisher {
     
     @Override
     public void init(Class<? extends Event> type, int bufferSize) {
+        // 设置为守护进程
         setDaemon(true);
+        // 设置线程名
         setName("nacos.publisher-" + type.getName());
         this.eventType = type;
+        // 设置事件队列最大值
         this.queueMaxSize = bufferSize;
+        // 初始化事件队列
         this.queue = new ArrayBlockingQueue<>(bufferSize);
         start();
     }
@@ -77,7 +81,9 @@ public class DefaultPublisher extends Thread implements EventPublisher {
     public synchronized void start() {
         if (!initialized) {
             // start just called once
+            // start方法只会执行一次
             super.start();
+            // 如果queueMaxSize == -1，则表示不是共享发布者，使用ringBufferSize
             if (queueMaxSize == -1) {
                 queueMaxSize = ringBufferSize;
             }
@@ -97,7 +103,7 @@ public class DefaultPublisher extends Thread implements EventPublisher {
     
     void openEventHandler() {
         try {
-            
+            // 等待60s，有订阅者后直接执行下一步
             // This variable is defined to resolve the problem which message overstock in the queue.
             int waitTimes = 60;
             // To ensure that messages are not lost, enable EventHandler when
@@ -114,7 +120,9 @@ public class DefaultPublisher extends Thread implements EventPublisher {
                 if (shutdown) {
                     break;
                 }
+                // 取出事件
                 final Event event = queue.take();
+                // 执行对应的订阅者
                 receiveEvent(event);
                 UPDATER.compareAndSet(this, lastEventSequence, Math.max(lastEventSequence, event.sequence()));
             }
@@ -140,8 +148,10 @@ public class DefaultPublisher extends Thread implements EventPublisher {
     @Override
     public boolean publish(Event event) {
         checkIsStart();
+        // 插入事件到队列
         boolean success = this.queue.offer(event);
         if (!success) {
+            // 如果插入失败，则手动执行，同步发送事件
             LOGGER.warn("Unable to plug in due to interruption, synchronize sending time, event : {}", event);
             receiveEvent(event);
             return true;
@@ -167,6 +177,7 @@ public class DefaultPublisher extends Thread implements EventPublisher {
     
     /**
      * Receive and notifySubscriber to process the event.
+     * 接收并通知订阅服务器以处理事件
      *
      * @param event {@link Event}.
      */
@@ -181,6 +192,7 @@ public class DefaultPublisher extends Thread implements EventPublisher {
         // Notification single event listener
         for (Subscriber subscriber : subscribers) {
             // Whether to ignore expiration events
+            // 判断事件是否已经过期
             if (subscriber.ignoreExpireEvent() && lastEventSequence > currentEventSequence) {
                 LOGGER.debug("[NotifyCenter] the {} is unacceptable to this subscriber, because had expire",
                         event.getClass());

@@ -21,6 +21,7 @@ import java.util.Objects;
 
 /**
  * naming abilities of nacos server.
+ * nacos服务端naming能力
  *
  * @author liuzunfei
  * @version $Id: ServerNamingAbility.java, v 0.1 2021年01月24日 00:09 AM liuzunfei Exp $
@@ -31,6 +32,7 @@ public class ServerNamingAbility implements Serializable {
     
     /**
      * Nacos server can use SOFA-Jraft to handle persist service and metadata.
+     * Nacos服务器可以使用SOFA-Jraft来处理持久化服务和元数据。
      */
     private boolean supportJraft;
     

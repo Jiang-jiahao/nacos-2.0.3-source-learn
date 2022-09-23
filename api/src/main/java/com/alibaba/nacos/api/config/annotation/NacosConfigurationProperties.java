@@ -31,6 +31,7 @@ import static com.alibaba.nacos.api.common.Constants.DEFAULT_GROUP;
 
 /**
  * An annotation for Nacos configuration Properties for binding POJO as Properties Object.
+ * 用于将POJO绑定为属性对象的Nacos配置属性的注解
  *
  * @author <a href="mailto:mercyblitz@gmail.com">Mercy</a>
  * @see PropertyKeyConst

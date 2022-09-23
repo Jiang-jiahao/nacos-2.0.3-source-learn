@@ -52,16 +52,16 @@ public class InitUtils {
      */
     public static String initNamespaceForNaming(Properties properties) {
         String tmpNamespace = null;
-        
+        // 判断在云环境中，是否启用命名空间解析
         String isUseCloudNamespaceParsing = properties.getProperty(PropertyKeyConst.IS_USE_CLOUD_NAMESPACE_PARSING,
                 System.getProperty(SystemPropertyKeyConst.IS_USE_CLOUD_NAMESPACE_PARSING,
                         String.valueOf(Constants.DEFAULT_USE_CLOUD_NAMESPACE_PARSING)));
         
         if (Boolean.parseBoolean(isUseCloudNamespaceParsing)) {
-            
+            // 先从系统环境变量变量名为ans.namespace获取
             tmpNamespace = TenantUtil.getUserTenantForAns();
             LogUtils.NAMING_LOGGER.info("initializer namespace from System Property : {}", tmpNamespace);
-            
+            // 获取不到，则从系统环境变量名为ALIBABA_ALIWARE_NAMESPACE获取
             tmpNamespace = TemplateUtils.stringEmptyAndThenExecute(tmpNamespace, new Callable<String>() {
                 @Override
                 public String call() {
@@ -71,7 +71,7 @@ public class InitUtils {
                 }
             });
         }
-        
+        // 获取不到，则从系统环境变量名为namespace获取
         tmpNamespace = TemplateUtils.stringEmptyAndThenExecute(tmpNamespace, new Callable<String>() {
             @Override
             public String call() {
@@ -80,11 +80,11 @@ public class InitUtils {
                 return namespace;
             }
         });
-        
+        // 还是获取不到，则从传入的配置文件中名为namespace获取
         if (StringUtils.isEmpty(tmpNamespace)) {
             tmpNamespace = properties.getProperty(PropertyKeyConst.NAMESPACE);
         }
-        
+        // 还是获取不到，则直接返回public
         tmpNamespace = TemplateUtils.stringEmptyAndThenExecute(tmpNamespace, new Callable<String>() {
             @Override
             public String call() {
@@ -105,11 +105,13 @@ public class InitUtils {
         TemplateUtils.stringNotEmptyAndThenExecute(webContext, new Runnable() {
             @Override
             public void run() {
+                // 如果contextPath属性在配置文件已经被设置，则进行正常化处理（比如说前面没有加/，则自动给加上），补充其他路径（前面都加上contextPath）
                 UtilAndComs.webContext = ContextPathUtil.normalizeContextPath(webContext);
                 UtilAndComs.nacosUrlBase = UtilAndComs.webContext + "/v1/ns";
                 UtilAndComs.nacosUrlInstance = UtilAndComs.nacosUrlBase + "/instance";
             }
         });
+        // 系统中如果设置了nacos.naming.web.context，则最终采用它的contextPath
         initWebRootContext();
     }
     

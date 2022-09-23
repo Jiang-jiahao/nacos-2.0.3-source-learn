@@ -21,6 +21,7 @@ import java.util.Objects;
 
 /**
  * config abilities of nacos server.
+ * nacos服务端config能力
  *
  * @author liuzunfei
  * @version $Id: ServerConfigAbility.java, v 0.1 2021年01月24日 00:09 AM liuzunfei Exp $

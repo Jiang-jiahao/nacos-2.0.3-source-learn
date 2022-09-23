@@ -24,6 +24,7 @@ import java.lang.annotation.Target;
 
 /**
  * An annotation for ignore field from annotated {@link NacosConfigurationProperties} Properties Object.
+ * 注解{@link NacosConfigurationProperties}属性对象中的需要排除的字段的注解。
  *
  * @author <a href="mailto:mercyblitz@gmail.com">Mercy</a>
  * @see NacosConfigurationProperties

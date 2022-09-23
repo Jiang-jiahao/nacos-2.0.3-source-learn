@@ -24,6 +24,7 @@ import java.lang.annotation.Target;
 
 /**
  * Annotation which extends value to support auto-refresh.
+ * 注解扩展值以支持自动刷新。
  *
  * @author <a href="mailto:huangxiaoyu1018@gmail.com">hxy1991</a>
  * @since 0.2.0

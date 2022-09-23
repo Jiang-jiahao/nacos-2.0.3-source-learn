@@ -23,6 +23,7 @@ import java.util.Map;
 
 /**
  * ConfigChangeParser.
+ * 配置更改解析器
  *
  * @author rushsky518
  */

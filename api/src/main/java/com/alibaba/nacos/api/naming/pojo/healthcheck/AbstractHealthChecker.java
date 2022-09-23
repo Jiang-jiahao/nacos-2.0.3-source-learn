@@ -29,6 +29,7 @@ import java.io.Serializable;
 
 /**
  * Abstract health checker.
+ * 抽象的健康检查者
  *
  * @author nkorange
  */
@@ -63,6 +64,7 @@ public abstract class AbstractHealthChecker implements Cloneable, Serializable {
     
     /**
      * Default implementation of Health checker.
+     * 运行状况检查程序的默认实现
      */
     public static class None extends AbstractHealthChecker {
         

@@ -38,6 +38,7 @@ import static com.alibaba.nacos.api.exception.NacosException.SERVER_ERROR;
 
 /**
  * Unified Event Notify Center.
+ * 统一事件通知中心
  *
  * @author <a href="mailto:liaochuntao@live.com">liaochuntao</a>
  * @author zongtanghu
@@ -62,22 +63,27 @@ public class NotifyCenter {
     
     /**
      * Publisher management container.
+     * 发布者管理容器
+     * key：事件类型的名字
+     * value：DEFAULT_PUBLISHER_FACTORY运行的结果，也就是一个DefaultPublisher，或者是一个SPI定义的class，类型和大小都是传入的
      */
     private final Map<String, EventPublisher> publisherMap = new ConcurrentHashMap<>(16);
     
     static {
         // Internal ArrayBlockingQueue buffer size. For applications with high write throughput,
         // this value needs to be increased appropriately. default value is 16384
+        // 设置ringBufferSize的大小，如果系统环境变量没有配置则默认16384
         String ringBufferSizeProperty = "nacos.core.notify.ring-buffer-size";
         ringBufferSize = Integer.getInteger(ringBufferSizeProperty, 16384);
         
         // The size of the public publisher's message staging queue buffer
+        // 设置shareBufferSize的大小，如果系统环境变量没有配置则默认1024
         String shareBufferSizeProperty = "nacos.core.notify.share-buffer-size";
         shareBufferSize = Integer.getInteger(shareBufferSizeProperty, 1024);
-        
+        // 加载SPI
         final Collection<EventPublisher> publishers = NacosServiceLoader.load(EventPublisher.class);
         Iterator<EventPublisher> iterator = publishers.iterator();
-        
+        // 如果没有事件发布器，则使用默认的时间发布器
         if (iterator.hasNext()) {
             clazz = iterator.next().getClass();
         } else {
@@ -86,6 +92,7 @@ public class NotifyCenter {
         
         DEFAULT_PUBLISHER_FACTORY = (cls, buffer) -> {
             try {
+                // 生成默认的时间发布器，并初始化
                 EventPublisher publisher = clazz.newInstance();
                 publisher.init(cls, buffer);
                 return publisher;
@@ -99,6 +106,7 @@ public class NotifyCenter {
             
             // Create and init DefaultSharePublisher instance.
             INSTANCE.sharePublisher = new DefaultSharePublisher();
+            // 初始化慢事件的默认共享事件发布器
             INSTANCE.sharePublisher.init(SlowEvent.class, shareBufferSize);
             
         } catch (Throwable ex) {
@@ -173,6 +181,7 @@ public class NotifyCenter {
     public static void registerSubscriber(final Subscriber consumer, final EventPublisherFactory factory) {
         // If you want to listen to multiple events, you do it separately,
         // based on subclass's subscribeTypes method return list, it can register to publisher.
+        // 判断是否是可以监听多个事件的订阅者类型
         if (consumer instanceof SmartSubscriber) {
             for (Class<? extends Event> subscribeType : ((SmartSubscriber) consumer).subscribeTypes()) {
                 // For case, producer: defaultSharePublisher -> consumer: smartSubscriber.
@@ -210,6 +219,7 @@ public class NotifyCenter {
             // MapUtils.computeIfAbsent is a unsafe method.
             MapUtil.computeIfAbsent(INSTANCE.publisherMap, topic, factory, subscribeType, ringBufferSize);
         }
+        // 根据事件类型拿到对应的发布者并添加订阅者
         EventPublisher publisher = INSTANCE.publisherMap.get(topic);
         if (publisher instanceof ShardedEventPublisher) {
             ((ShardedEventPublisher) publisher).addSubscriber(consumer, subscribeType);

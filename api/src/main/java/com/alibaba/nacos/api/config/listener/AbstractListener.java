@@ -20,6 +20,7 @@ import java.util.concurrent.Executor;
 
 /**
  * Listener Adapter,use default notify thread.
+ * 监听器适配器，使用默认的通知线程
  *
  * @author water.lyl
  */

@@ -20,6 +20,7 @@ import java.util.concurrent.Executor;
 
 /**
  * Abstract event listener, to support handle event by user custom executor.
+ * 抽象事件监听器，支持用户自定义执行器处理事件
  *
  * @author horizonzy
  * @since 1.4.1

@@ -57,6 +57,7 @@ public class TenantUtil {
     
     /**
      * Adapt the way ANS gets tenant on the cloud.
+     * 调整ANS在云上获得租户的方式
      *
      * @return user tenant for ans
      */

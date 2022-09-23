@@ -64,11 +64,14 @@ public class NacosNamingService implements NamingService {
     private String namespace;
     
     private String logName;
-    
+
+    // 服务信息持有者
     private ServiceInfoHolder serviceInfoHolder;
-    
+
+    // 实例改变订阅者
     private InstancesChangeNotifier changeNotifier;
-    
+
+    // naming客户端代理
     private NamingClientProxy clientProxy;
     
     public NacosNamingService(String serverList) throws NacosException {
@@ -80,25 +83,34 @@ public class NacosNamingService implements NamingService {
     public NacosNamingService(Properties properties) throws NacosException {
         init(properties);
     }
-    
+
+    // 初始化
     private void init(Properties properties) throws NacosException {
+        // 校验参数contextPath
         ValidatorUtils.checkInitParam(properties);
+        // 初始化namespace
         this.namespace = InitUtils.initNamespaceForNaming(properties);
+        // TODO Jackson不明白
         InitUtils.initSerialization();
+        // 初始化contextPath，并修改对应的路径（路径前的contextPath采用自己配置的）
         InitUtils.initWebRootContext(properties);
+        // 初始化naming日志的文件名
         initLogName(properties);
         
         this.changeNotifier = new InstancesChangeNotifier();
+        // 注册一个InstancesChangeEvent事件的发布者，大小为16384
         NotifyCenter.registerToPublisher(InstancesChangeEvent.class, 16384);
+        // 注册一个InstancesChangeEvent事件的监听器
         NotifyCenter.registerSubscriber(changeNotifier);
         this.serviceInfoHolder = new ServiceInfoHolder(namespace, properties);
         this.clientProxy = new NamingClientProxyDelegate(this.namespace, serviceInfoHolder, properties, changeNotifier);
     }
     
     private void initLogName(Properties properties) {
+        // 先从系统环境变量获取名为com.alibaba.nacos.naming.log.filename的naming日志文件名
         logName = System.getProperty(UtilAndComs.NACOS_NAMING_LOG_NAME);
         if (StringUtils.isEmpty(logName)) {
-            
+            // 没有则从传入的配置中获取，如果还是没有则给默认日志名naming.log
             if (properties != null && StringUtils
                     .isNotEmpty(properties.getProperty(UtilAndComs.NACOS_NAMING_LOG_NAME))) {
                 logName = properties.getProperty(UtilAndComs.NACOS_NAMING_LOG_NAME);

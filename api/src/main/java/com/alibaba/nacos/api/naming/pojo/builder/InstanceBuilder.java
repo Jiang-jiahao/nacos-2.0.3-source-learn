@@ -24,6 +24,7 @@ import java.util.Objects;
 
 /**
  * Builder for {@link Instance}.
+ * 实例构造器
  *
  * @author xiweng.yy
  */

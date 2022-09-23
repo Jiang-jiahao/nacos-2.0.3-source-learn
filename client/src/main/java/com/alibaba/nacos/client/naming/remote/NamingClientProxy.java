@@ -28,6 +28,7 @@ import java.util.Set;
 
 /**
  * Naming Client Proxy.
+ * naming client 代理
  *
  * @author xiweng.yy
  */

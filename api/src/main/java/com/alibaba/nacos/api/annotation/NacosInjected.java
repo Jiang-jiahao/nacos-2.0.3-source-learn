@@ -27,6 +27,7 @@ import java.lang.annotation.Target;
 
 /**
  * An annotation to inject {@link ConfigService} or {@link NamingService} instance into the target Bean.
+ * 将{@link ConfigService} 或 {@link NamingService}实例注入到目标Bean的注解
  *
  * @author <a href="mailto:mercyblitz@gmail.com">Mercy</a>
  * @see ConfigService

@@ -18,6 +18,7 @@ package com.alibaba.nacos.api.config.filter;
 
 /**
  * Config Filter Interface default implementation.
+ * config过滤器默认实现
  *
  * @author luyanbo(RobberPhex)
  */

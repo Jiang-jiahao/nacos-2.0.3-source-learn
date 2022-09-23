@@ -20,6 +20,7 @@ import java.util.Map;
 
 /**
  * CMDB entity.
+ * CMDB实体
  *
  * @author nkorange
  * @since 0.7.0

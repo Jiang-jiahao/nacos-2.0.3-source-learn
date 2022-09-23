@@ -20,6 +20,7 @@ import java.util.Map;
 
 /**
  * Beat information.
+ * 心跳信息
  *
  * @author nkorange
  */

@@ -230,6 +230,7 @@ public final class JacksonUtils {
     
     /**
      * Register sub type for child class.
+     * 为子类注册子类型
      *
      * @param clz  child class
      * @param type type name of child class

@@ -20,6 +20,7 @@ import java.util.Set;
 
 /**
  * CMDB lable.
+ * CMDB 标签
  *
  * @author nkorange
  * @since 0.7.0

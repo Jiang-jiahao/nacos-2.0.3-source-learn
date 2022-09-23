@@ -25,6 +25,8 @@ import java.lang.annotation.Target;
 /**
  * An annotation for Nacos Property name of  Nacos Configuration to bind a field from annotated {@link
  * NacosConfigurationProperties} Properties Object.
+ * 对Nacos Configuration的Nacos属性名的注解，用于绑定已注释{@link NacosConfigurationProperties}属性对象。
+ *
  *
  * @author <a href="mailto:mercyblitz@gmail.com">Mercy</a>
  * @see NacosConfigurationProperties

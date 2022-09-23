@@ -33,6 +33,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A subscriber to notify eventListener callback.
+ * InstancesChangeEvent事件回调的订阅者
  *
  * @author horizonzy
  * @since 1.4.1
@@ -110,12 +111,14 @@ public class InstancesChangeNotifier extends Subscriber<InstancesChangeEvent> {
     
     @Override
     public void onEvent(InstancesChangeEvent event) {
+        // 根据事件获取实例的key值
         String key = ServiceInfo
                 .getKey(NamingUtils.getGroupedName(event.getServiceName(), event.getGroupName()), event.getClusters());
         ConcurrentHashSet<EventListener> eventListeners = listenerMap.get(key);
         if (CollectionUtils.isEmpty(eventListeners)) {
             return;
         }
+        // 不为空，则循环调用注册的监听器
         for (final EventListener listener : eventListeners) {
             final com.alibaba.nacos.api.naming.listener.Event namingEvent = transferToNamingEvent(event);
             if (listener instanceof AbstractEventListener && ((AbstractEventListener) listener).getExecutor() != null) {

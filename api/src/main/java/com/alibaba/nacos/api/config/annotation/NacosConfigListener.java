@@ -31,6 +31,7 @@ import static com.alibaba.nacos.api.common.Constants.DEFAULT_GROUP;
 
 /**
  * Annotation that marks a method as a listener for Nacos Config change.
+ * 将方法标记为Nacos Config改变的监听器的注解
  *
  * @author <a href="mailto:mercyblitz@gmail.com">Mercy</a>
  * @since 0.2.0

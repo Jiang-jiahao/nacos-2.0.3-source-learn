@@ -18,6 +18,7 @@ package com.alibaba.nacos.api.config;
 
 /**
  * config abilities of nacos client.
+ * nacos客户端config能力
  *
  * @author liuzunfei
  * @version $Id: ClientConfigAbility.java, v 0.1 2021年01月24日 00:09 AM liuzunfei Exp $

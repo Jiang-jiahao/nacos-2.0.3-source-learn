@@ -38,6 +38,7 @@ import static com.alibaba.nacos.client.utils.LogUtils.NAMING_LOGGER;
 
 /**
  * Push receiver.
+ * 推送接收器
  *
  * @author xuanyin
  */

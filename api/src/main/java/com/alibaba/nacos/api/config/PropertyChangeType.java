@@ -18,6 +18,7 @@ package com.alibaba.nacos.api.config;
 
 /**
  * Property Change Type.
+ * 配置改变类型
  *
  * @author rushsky518
  */

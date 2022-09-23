@@ -20,6 +20,7 @@ import java.util.concurrent.Executor;
 
 /**
  * Shared Listener.
+ * 共享的监听器
  *
  * @author Nacos
  */

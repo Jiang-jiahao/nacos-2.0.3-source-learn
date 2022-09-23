@@ -18,6 +18,7 @@ package com.alibaba.nacos.api.config.convert;
 
 /**
  * Nacos Config Converter.
+ * nacos配置类型转换器
  *
  * @param <T> the target type that wanted
  * @author <a href="mailto:mercyblitz@gmail.com">Mercy</a>

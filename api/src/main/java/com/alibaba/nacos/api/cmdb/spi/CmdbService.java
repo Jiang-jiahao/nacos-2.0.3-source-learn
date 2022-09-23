@@ -26,6 +26,7 @@ import java.util.Set;
 
 /**
  * Service to visit CMDB store.
+ * CMDB存储服务
  *
  * @author nkorange
  * @since 0.7.0

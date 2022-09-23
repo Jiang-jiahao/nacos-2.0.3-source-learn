@@ -18,6 +18,7 @@ package com.alibaba.nacos.api.config.filter;
 
 /**
  * Filter Config Interface.
+ * 过滤器配置接口
  *
  * @author Nacos
  */

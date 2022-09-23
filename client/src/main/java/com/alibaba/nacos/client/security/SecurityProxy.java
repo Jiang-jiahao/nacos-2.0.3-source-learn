@@ -40,6 +40,7 @@ import static com.alibaba.nacos.client.naming.utils.UtilAndComs.webContext;
 
 /**
  * Security proxy to update security information.
+ * 安全代理来更新安全信息
  *
  * @author nkorange
  * @since 1.2.0

@@ -45,6 +45,7 @@ import static com.alibaba.nacos.client.utils.LogUtils.NAMING_LOGGER;
 
 /**
  * Naming client service information holder.
+ * Naming client 服务信息持有者
  *
  * @author xiweng.yy
  */
@@ -63,20 +64,26 @@ public class ServiceInfoHolder implements Closeable {
     private final FailoverReactor failoverReactor;
     
     private final boolean pushEmptyProtection;
-    
+
+    // naming相关的缓存目录路径
     private String cacheDir;
     
     public ServiceInfoHolder(String namespace, Properties properties) {
+        // 初始化naming缓存目录
         initCacheDir(namespace, properties);
+        // 判断是否需要启动的时候就加载缓存
         if (isLoadCacheAtStart(properties)) {
+            // 从缓存中读取服务信息
             this.serviceInfoMap = new ConcurrentHashMap<String, ServiceInfo>(DiskCache.read(this.cacheDir));
         } else {
             this.serviceInfoMap = new ConcurrentHashMap<String, ServiceInfo>(16);
         }
+        // 创建故障恢复反应器
         this.failoverReactor = new FailoverReactor(this, cacheDir);
         this.pushEmptyProtection = isPushEmptyProtect(properties);
     }
-    
+
+    // 初始化naming缓存目录
     private void initCacheDir(String namespace, Properties properties) {
         String jmSnapshotPath = System.getProperty(JM_SNAPSHOT_PATH_PROPERTY);
     
@@ -84,7 +91,7 @@ public class ServiceInfoHolder implements Closeable {
         if (properties.getProperty(PropertyKeyConst.NAMING_CACHE_REGISTRY_DIR) != null) {
             namingCacheRegistryDir = File.separator + properties.getProperty(PropertyKeyConst.NAMING_CACHE_REGISTRY_DIR);
         }
-        
+        // 如果设置了环境变量JM.SNAPSHOT.PATH，则使用该内容作为缓存文件的前路径。没有设置则采用用户home目录作为缓存前路径
         if (!StringUtils.isBlank(jmSnapshotPath)) {
             cacheDir = jmSnapshotPath + File.separator + FILE_PATH_NACOS + namingCacheRegistryDir
                     + File.separator + FILE_PATH_NAMING + File.separator + namespace;
@@ -96,8 +103,10 @@ public class ServiceInfoHolder implements Closeable {
     
     private boolean isLoadCacheAtStart(Properties properties) {
         boolean loadCacheAtStart = false;
+        // 判断传入的配置文件是否配置了namingLoadCacheAtStart
         if (properties != null && StringUtils
                 .isNotEmpty(properties.getProperty(PropertyKeyConst.NAMING_LOAD_CACHE_AT_START))) {
+            // 如果配置了，则按配置的修改并返回
             loadCacheAtStart = ConvertUtils
                     .toBoolean(properties.getProperty(PropertyKeyConst.NAMING_LOAD_CACHE_AT_START));
         }
@@ -122,6 +131,7 @@ public class ServiceInfoHolder implements Closeable {
         NAMING_LOGGER.debug("failover-mode: " + failoverReactor.isFailoverSwitch());
         String groupedServiceName = NamingUtils.getGroupedName(serviceName, groupName);
         String key = ServiceInfo.getKey(groupedServiceName, clusters);
+        // 如果故障模式了，则从failoverReactor获取
         if (failoverReactor.isFailoverSwitch()) {
             return failoverReactor.getService(key);
         }

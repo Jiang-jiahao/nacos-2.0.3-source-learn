@@ -18,6 +18,7 @@ package com.alibaba.nacos.api.naming.listener;
 
 /**
  * Event Interface.
+ * 事件接口
  *
  * @author nkorange
  */

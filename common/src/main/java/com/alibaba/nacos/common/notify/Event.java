@@ -34,6 +34,7 @@ public abstract class Event implements Serializable {
     
     /**
      * Event sequence number, which can be used to handle the sequence of events.
+     * 事件序列号，可用于处理事件的顺序
      *
      * @return sequence num, It's best to make sure it's monotone.
      */

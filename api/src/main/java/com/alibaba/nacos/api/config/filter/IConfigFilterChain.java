@@ -20,6 +20,7 @@ import com.alibaba.nacos.api.exception.NacosException;
 
 /**
  * Config Filter Chain Interface.
+ * config过滤器链接口
  *
  * @author Nacos
  */

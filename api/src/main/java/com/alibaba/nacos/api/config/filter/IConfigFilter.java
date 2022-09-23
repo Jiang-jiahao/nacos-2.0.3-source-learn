@@ -22,6 +22,7 @@ import java.util.Properties;
 
 /**
  * Config Filter Interface.
+ * config过滤器接口
  *
  * <p>DO NOT implement this interface directly, you should extend <code>AbstractConfigFilter</code>.
  *
