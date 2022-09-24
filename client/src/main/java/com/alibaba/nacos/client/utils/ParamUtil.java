@@ -202,6 +202,7 @@ public class ParamUtil {
     
     /**
      * Parse end point rule.
+     * 解析端点规则
      *
      * @param endpointUrl endpoint url
      * @return end point rule

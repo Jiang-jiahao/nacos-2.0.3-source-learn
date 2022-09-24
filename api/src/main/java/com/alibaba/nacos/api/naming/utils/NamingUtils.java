@@ -124,6 +124,7 @@ public class NamingUtils {
      * @throws NacosException if check failed, throw exception
      */
     public static void checkInstanceIsLegal(Instance instance) throws NacosException {
+        // 获取实例的元数据，比较心跳超时和心跳间隔时间。如果心跳间隔时间大于心跳超时时间，那就是永远都会超时，不正确
         if (instance.getInstanceHeartBeatTimeOut() < instance.getInstanceHeartBeatInterval()
                 || instance.getIpDeleteTimeout() < instance.getInstanceHeartBeatInterval()) {
             throw new NacosException(NacosException.INVALID_PARAM,

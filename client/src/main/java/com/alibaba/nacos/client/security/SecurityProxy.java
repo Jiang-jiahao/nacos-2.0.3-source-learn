@@ -107,11 +107,12 @@ public class SecurityProxy {
     public boolean login(List<String> servers) {
         
         try {
+            // 判断token是否有效
             if ((System.currentTimeMillis() - lastRefreshTime) < TimeUnit.SECONDS
                     .toMillis(tokenTtl - tokenRefreshWindow)) {
                 return true;
             }
-            
+            // 依次登录每个服务器
             for (String server : servers) {
                 if (login(server)) {
                     lastRefreshTime = System.currentTimeMillis();

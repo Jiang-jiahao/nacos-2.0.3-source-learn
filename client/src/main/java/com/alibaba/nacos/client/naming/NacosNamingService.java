@@ -102,7 +102,9 @@ public class NacosNamingService implements NamingService {
         NotifyCenter.registerToPublisher(InstancesChangeEvent.class, 16384);
         // 注册一个InstancesChangeEvent事件的监听器
         NotifyCenter.registerSubscriber(changeNotifier);
+        // 创建Naming 客户端服务信息持有者
         this.serviceInfoHolder = new ServiceInfoHolder(namespace, properties);
+        // 创建naming 客户端委派代理对象
         this.clientProxy = new NamingClientProxyDelegate(this.namespace, serviceInfoHolder, properties, changeNotifier);
     }
     
@@ -153,7 +155,7 @@ public class NacosNamingService implements NamingService {
     
     @Override
     public void registerInstance(String serviceName, String groupName, Instance instance) throws NacosException {
-        // 检查心跳
+        // 校验元数据的心跳间隔时间和心跳超时时间的大小关系是否合理
         NamingUtils.checkInstanceIsLegal(instance);
         clientProxy.registerService(serviceName, groupName, instance);
     }

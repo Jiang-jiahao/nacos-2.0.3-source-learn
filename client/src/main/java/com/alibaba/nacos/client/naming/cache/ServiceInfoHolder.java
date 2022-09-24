@@ -62,7 +62,7 @@ public class ServiceInfoHolder implements Closeable {
     private final ConcurrentMap<String, ServiceInfo> serviceInfoMap;
     
     private final FailoverReactor failoverReactor;
-    
+    // 空服务或者错误服务保护开关（开启后会判断是否是错误的服务）
     private final boolean pushEmptyProtection;
 
     // naming相关的缓存目录路径
@@ -80,6 +80,7 @@ public class ServiceInfoHolder implements Closeable {
         }
         // 创建故障恢复反应器
         this.failoverReactor = new FailoverReactor(this, cacheDir);
+        // 设置空服务或者错误服务保护开关
         this.pushEmptyProtection = isPushEmptyProtect(properties);
     }
 
@@ -115,6 +116,7 @@ public class ServiceInfoHolder implements Closeable {
     
     private boolean isPushEmptyProtect(Properties properties) {
         boolean pushEmptyProtection = false;
+        // 判断传入的属性中是否有namingPushEmptyProtection，有则设置
         if (properties != null && StringUtils
                 .isNotEmpty(properties.getProperty(PropertyKeyConst.NAMING_PUSH_EMPTY_PROTECTION))) {
             pushEmptyProtection = ConvertUtils

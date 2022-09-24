@@ -66,26 +66,35 @@ public class NamingClientProxyDelegate implements NamingClientProxy {
     
     public NamingClientProxyDelegate(String namespace, ServiceInfoHolder serviceInfoHolder, Properties properties,
             InstancesChangeNotifier changeNotifier) throws NacosException {
+        // 创建服务信息更新服务
         this.serviceInfoUpdateService = new ServiceInfoUpdateService(properties, serviceInfoHolder, this,
                 changeNotifier);
+        // 创建服务器列表管理者
         this.serverListManager = new ServerListManager(properties, namespace);
         this.serviceInfoHolder = serviceInfoHolder;
+        // 创建安全代理
         this.securityProxy = new SecurityProxy(properties, NamingHttpClientManager.getInstance().getNacosRestTemplate());
+        // 初始化安全代理（登录每个服务器）
         initSecurityProxy();
+        // 创建naming的http代理
         this.httpClientProxy = new NamingHttpClientProxy(namespace, securityProxy, serverListManager, properties,
                 serviceInfoHolder);
+        // 创建naming的rpc代理
         this.grpcClientProxy = new NamingGrpcClientProxy(namespace, securityProxy, serverListManager, properties,
                 serviceInfoHolder);
     }
     
     private void initSecurityProxy() {
+        // 创建线程池
         this.executorService = new ScheduledThreadPoolExecutor(1, r -> {
             Thread t = new Thread(r);
             t.setName("com.alibaba.nacos.client.naming.security");
             t.setDaemon(true);
             return t;
         });
+        // 依次登录每个服务器
         this.securityProxy.login(serverListManager.getServerList());
+        // 执行定时任务，每隔多久执行一次登录
         this.executorService.scheduleWithFixedDelay(() -> securityProxy.login(serverListManager.getServerList()), 0,
                 securityInfoRefreshIntervalMills, TimeUnit.MILLISECONDS);
     }

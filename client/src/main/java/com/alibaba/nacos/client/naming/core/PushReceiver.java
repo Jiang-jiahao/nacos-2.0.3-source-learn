@@ -69,6 +69,7 @@ public class PushReceiver implements Runnable, Closeable {
     public PushReceiver(ServiceInfoHolder serviceInfoHolder) {
         try {
             this.serviceInfoHolder = serviceInfoHolder;
+            // 获取推送接收器的udp端口
             String udpPort = getPushReceiverUdpPort();
             if (StringUtils.isEmpty(udpPort)) {
                 this.udpSocket = new DatagramSocket();
@@ -108,6 +109,7 @@ public class PushReceiver implements Runnable, Closeable {
                 PushPacket pushPacket = JacksonUtils.toObj(json, PushPacket.class);
                 String ack;
                 if (PUSH_PACKAGE_TYPE_DOM.equals(pushPacket.type) || PUSH_PACKAGE_TYPE_SERVICE.equals(pushPacket.type)) {
+                    // 根据serviceInfo的json串，修改serviceInfo
                     serviceInfoHolder.processServiceInfo(pushPacket.data);
                     
                     // send ack to server

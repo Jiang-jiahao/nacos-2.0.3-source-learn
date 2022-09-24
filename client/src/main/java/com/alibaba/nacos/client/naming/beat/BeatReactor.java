@@ -66,7 +66,9 @@ public class BeatReactor implements Closeable {
     
     public BeatReactor(NamingHttpClientProxy serverProxy, Properties properties) {
         this.serverProxy = serverProxy;
+        // 初始化客户端心跳的线程数
         int threadCount = initClientBeatThreadCount(properties);
+        // 创建线程池
         this.executorService = new ScheduledThreadPoolExecutor(threadCount, new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -80,6 +82,7 @@ public class BeatReactor implements Closeable {
     
     private int initClientBeatThreadCount(Properties properties) {
         if (properties == null) {
+            // TODO 核倍数
             return UtilAndComs.DEFAULT_CLIENT_BEAT_THREAD_COUNT;
         }
         
@@ -98,10 +101,12 @@ public class BeatReactor implements Closeable {
         String key = buildKey(serviceName, beatInfo.getIp(), beatInfo.getPort());
         BeatInfo existBeat;
         //fix #1733
+        // 如果原来服务存在了，则先停止心跳
         if ((existBeat = dom2Beat.remove(key)) != null) {
             existBeat.setStopped(true);
         }
         dom2Beat.put(key, beatInfo);
+        // 利用延时的定时任务周期向服务端发送心跳包（默认延时5s后执行）
         executorService.schedule(new BeatTask(beatInfo), beatInfo.getPeriod(), TimeUnit.MILLISECONDS);
         MetricsMonitor.getDom2BeatSizeMonitor().set(dom2Beat.size());
     }

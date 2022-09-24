@@ -123,8 +123,11 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
         this.serverListManager = serverListManager;
         this.setServerPort(DEFAULT_SERVER_PORT);
         this.namespaceId = namespaceId;
+        // 创建心跳反应器
         this.beatReactor = new BeatReactor(this, properties);
+        // TODO 创建推送接收器
         this.pushReceiver = new PushReceiver(serviceInfoHolder);
+        // 设置最大重试次数
         this.maxRetry = ConvertUtils.toInt(properties.getProperty(PropertyKeyConst.NAMING_REQUEST_DOMAIN_RETRY_COUNT,
                 String.valueOf(UtilAndComs.REQUEST_DOMAIN_RETRY_COUNT)));
     }
@@ -145,7 +148,9 @@ public class NamingHttpClientProxy extends AbstractNamingClientProxy {
         NAMING_LOGGER.info("[REGISTER-SERVICE] {} registering service {} with instance: {}", namespaceId, serviceName,
                 instance);
         String groupedServiceName = NamingUtils.getGroupedName(serviceName, groupName);
+        // 如果是临时实例，则由客户端上报心跳。而持久化实例则由服务端来探测
         if (instance.isEphemeral()) {
+            // 构建心跳信息
             BeatInfo beatInfo = beatReactor.buildBeatInfo(groupedServiceName, instance);
             beatReactor.addBeatInfo(groupedServiceName, beatInfo);
         }

@@ -82,6 +82,7 @@ public class ServerListManager implements ServerListFactory, Closeable {
     
     public ServerListManager(Properties properties, String namespace) {
         this.namespace = namespace;
+        // 初始化服务器地址
         initServerAddr(properties);
         if (!serverList.isEmpty()) {
             currentIndex.set(new Random().nextInt(serverList.size()));
@@ -89,15 +90,20 @@ public class ServerListManager implements ServerListFactory, Closeable {
     }
     
     private void initServerAddr(Properties properties) {
+        // 初始化端点
         this.endpoint = InitUtils.initEndpoint(properties);
         if (StringUtils.isNotEmpty(endpoint)) {
+            // 如果端点不为空，根据端点获取服务器列表
             this.serversFromEndpoint = getServerListFromEndpoint();
+            // 创建一个服务器列表刷新线程池
             refreshServerListExecutor = new ScheduledThreadPoolExecutor(1,
                     new NameThreadFactory("com.alibaba.nacos.client.naming.server.list.refresher"));
+            // 定时任务刷新服务器列表
             refreshServerListExecutor
                     .scheduleWithFixedDelay(this::refreshServerListIfNeed, 0, refreshServerListInternal,
                             TimeUnit.MILLISECONDS);
         } else {
+            // 如果端点没有设置，则看传入的配置中是否设置了serverAddr属性
             String serverListFromProps = properties.getProperty(PropertyKeyConst.SERVER_ADDR);
             if (StringUtils.isNotEmpty(serverListFromProps)) {
                 this.serverList.addAll(Arrays.asList(serverListFromProps.split(",")));
@@ -136,13 +142,16 @@ public class ServerListManager implements ServerListFactory, Closeable {
     
     private void refreshServerListIfNeed() {
         try {
+            // 如果服务器列表不为空则不执行刷新
             if (!CollectionUtils.isEmpty(serverList)) {
                 NAMING_LOGGER.debug("server list provided by user: " + serverList);
                 return;
             }
+            // 判断间隔是否超过30秒，超过则执行刷新
             if (System.currentTimeMillis() - lastServerListRefreshTime < refreshServerListInternal) {
                 return;
             }
+            // 刷新
             List<String> list = getServerListFromEndpoint();
             if (CollectionUtils.isEmpty(list)) {
                 throw new Exception("Can not acquire Nacos list");
@@ -152,6 +161,7 @@ public class ServerListManager implements ServerListFactory, Closeable {
             }
             serversFromEndpoint = list;
             lastServerListRefreshTime = System.currentTimeMillis();
+            // 发送事件（定时刷新服务器列表）
             NotifyCenter.publishEvent(new ServerListChangedEvent());
         } catch (Throwable e) {
             NAMING_LOGGER.warn("failed to update server list", e);

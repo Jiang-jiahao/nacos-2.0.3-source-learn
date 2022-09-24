@@ -150,8 +150,10 @@ public class InitUtils {
         
         boolean isUseEndpointParsingRule = Boolean.parseBoolean(isUseEndpointRuleParsing);
         String endpointUrl;
+        // 判断是否使用端点解析规则
         if (isUseEndpointParsingRule) {
             // Get the set domain name information
+            // 解析端点规则，解析出端点的url
             endpointUrl = ParamUtil.parsingEndpointRule(properties.getProperty(PropertyKeyConst.ENDPOINT));
             if (StringUtils.isBlank(endpointUrl)) {
                 return "";
@@ -163,7 +165,7 @@ public class InitUtils {
         if (StringUtils.isBlank(endpointUrl)) {
             return "";
         }
-        
+        // 如果系统变量中没有获取到ALIBABA_ALIWARE_ENDPOINT_PORT属性，则从传入的配置中获取
         String endpointPort = TemplateUtils
                 .stringEmptyAndThenExecute(System.getenv(PropertyKeyConst.SystemEnv.ALIBABA_ALIWARE_ENDPOINT_PORT),
                         new Callable<String>() {
@@ -173,7 +175,7 @@ public class InitUtils {
                                 return properties.getProperty(PropertyKeyConst.ENDPOINT_PORT);
                             }
                         });
-        
+        // 如果endpointPort还是空，则使用默认的端口8080
         endpointPort = TemplateUtils.stringEmptyAndThenExecute(endpointPort, new Callable<String>() {
             @Override
             public String call() {
