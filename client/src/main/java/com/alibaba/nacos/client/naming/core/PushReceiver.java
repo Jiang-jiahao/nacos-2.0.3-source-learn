@@ -109,7 +109,7 @@ public class PushReceiver implements Runnable, Closeable {
                 PushPacket pushPacket = JacksonUtils.toObj(json, PushPacket.class);
                 String ack;
                 if (PUSH_PACKAGE_TYPE_DOM.equals(pushPacket.type) || PUSH_PACKAGE_TYPE_SERVICE.equals(pushPacket.type)) {
-                    // 根据serviceInfo的json串，修改serviceInfo
+                    // 根据serviceInfo的json串，修改serviceInfo，发布InstancesChangeEvent事件修改客户端实例
                     serviceInfoHolder.processServiceInfo(pushPacket.data);
                     
                     // send ack to server

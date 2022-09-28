@@ -106,6 +106,7 @@ public class ClientBeatCheckTask implements BeatCheckTask {
                                             instance.getIp(), instance.getPort(), instance.getClusterName(),
                                             service.getName(), UtilsAndCommons.LOCALHOST_SITE,
                                             instance.getInstanceHeartBeatTimeOut(), instance.getLastBeat());
+                            // 实例发生改变，发布serviceChange事件发送upd修改客户端实例数据
                             getPushService().serviceChanged(service);
                         }
                     }

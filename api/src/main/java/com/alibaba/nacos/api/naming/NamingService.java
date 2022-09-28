@@ -330,12 +330,13 @@ public interface NamingService {
     
     /**
      * Get qualified instances within specified clusters of service.
+     * 在指定的服务集群中获取符合的实例。
      *
      * @param serviceName name of service
      * @param groupName   group of service
      * @param clusters    list of cluster
-     * @param healthy     a flag to indicate returning healthy or unhealthy instances
-     * @param subscribe   if subscribe the service
+     * @param healthy     a flag to indicate returning healthy or unhealthy instances 实例是否健康
+     * @param subscribe   if subscribe the service 如果订阅服务
      * @return A qualified list of instance
      * @throws NacosException nacos exception
      */
