@@ -171,17 +171,18 @@ public abstract class BaseGrpcServer extends BaseRpcServer {
                 .setFullMethodName(MethodDescriptor.generateFullMethodName(REQUEST_SERVICE_NAME, REQUEST_METHOD_NAME))
                 .setRequestMarshaller(ProtoUtils.marshaller(Payload.getDefaultInstance()))
                 .setResponseMarshaller(ProtoUtils.marshaller(Payload.getDefaultInstance())).build();
-        
+        // 定义服务处理方法回调
         final ServerCallHandler<Payload, Payload> payloadHandler = ServerCalls
                 .asyncUnaryCall((request, responseObserver) -> {
                     grpcCommonRequestAcceptor.request(request, responseObserver);
                 });
-        
+        // 定义Service
         final ServerServiceDefinition serviceDefOfUnaryPayload = ServerServiceDefinition.builder(REQUEST_SERVICE_NAME)
                 .addMethod(unaryPayloadMethod, payloadHandler).build();
         handlerRegistry.addService(ServerInterceptors.intercept(serviceDefOfUnaryPayload, serverInterceptor));
         
         // bi stream register.
+        // 定义bi注册器回调
         final ServerCallHandler<Payload, Payload> biStreamHandler = ServerCalls.asyncBidiStreamingCall(
                 (responseObserver) -> grpcBiStreamRequestAcceptor.requestBiStream(responseObserver));
         
