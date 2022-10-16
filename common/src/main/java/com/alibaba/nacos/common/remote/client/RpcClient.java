@@ -104,6 +104,7 @@ public abstract class RpcClient implements Closeable {
 
     /**
      * handlers to process server push request.
+     * 处理服务器推送请求的处理程序
      */
     protected List<ServerRequestHandler> serverRequestHandlers = new ArrayList<ServerRequestHandler>();
 
@@ -142,10 +143,12 @@ public abstract class RpcClient implements Closeable {
 
     /**
      * init server list factory.only can init once.
+     * 初始化服务器列表工厂。只能初始化一次
      *
      * @param serverListFactory serverListFactory
      */
     public RpcClient serverListFactory(ServerListFactory serverListFactory) {
+        // 如果初始化过，则直接返回
         if (!isWaitInitiated()) {
             return this;
         }
@@ -297,10 +300,10 @@ public abstract class RpcClient implements Closeable {
                         take = eventLinkedBlockingQueue.take();
                         // 判断rpc客户端是否已经连接
                         if (take.isConnected()) {
-                            // 通知重试机制已经连接，不需要再重试
+                            // 执行连接成功的监听器（通知重试机制已经连接，不需要再重试）
                             notifyConnected();
                         } else if (take.isDisConnected()) {
-                            // 通知重试机制未连接，需要重试
+                            // 执行连接断开的监听器（通知重试机制未连接，需要重试）
                             notifyDisConnected();
                         }
                     } catch (Throwable e) {
@@ -315,6 +318,7 @@ public abstract class RpcClient implements Closeable {
             public void run() {
                 while (true) {
                     try {
+                        // 如果关闭则终止循环
                         if (isShutdown()) {
                             break;
                         }
@@ -415,11 +419,13 @@ public abstract class RpcClient implements Closeable {
 
         }
 
+        // 判断是否连接成功
         if (connectToServer != null) {
             LoggerUtils.printIfInfoEnabled(LOGGER, "[{}] Success to connect to server [{}] on start up,connectionId={}",
                     name, connectToServer.serverInfo.getAddress(), connectToServer.getConnectionId());
             this.currentConnection = connectToServer;
             rpcClientStatus.set(RpcClientStatus.RUNNING);
+            // 添加连接成功事件
             eventLinkedBlockingQueue.offer(new ConnectionEvent(ConnectionEvent.CONNECTED));
         } else {
             // 要是没有一个服务端能连接，则关闭连接
@@ -558,6 +564,7 @@ public abstract class RpcClient implements Closeable {
                             //set current connection to enable connection event.
                             // 设置当前连接，用以启动连接事件
                             currentConnection.setAbandon(true);
+                            // 关闭当前连接
                             closeConnection(currentConnection);
                         }
                         // 新连接替换旧连接
@@ -850,6 +857,7 @@ public abstract class RpcClient implements Closeable {
         LoggerUtils.printIfInfoEnabled(LOGGER, "[{}]receive server push request,request={},requestId={}", name,
                 request.getClass().getSimpleName(), request.getRequestId());
         lastActiveTimeStamp = System.currentTimeMillis();
+        // 处理来自服务器端的请求
         for (ServerRequestHandler serverRequestHandler : serverRequestHandlers) {
             try {
                 Response response = serverRequestHandler.requestReply(request);

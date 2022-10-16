@@ -29,16 +29,18 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * RpcClientFactory.to support multi client for different modules of usage.
+ * RpcClientFactory支持多客户端使用不同的模块
  *
  * @author liuzunfei
  * @version $Id: RpcClientFactory.java, v 0.1 2020年07月14日 3:41 PM liuzunfei Exp $
  */
 public class RpcClientFactory {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger("com.alibaba.nacos.common.remote.client");
-    
+
+    // key为rpc的名称，是一个uuid
     private static final Map<String, RpcClient> CLIENT_MAP = new ConcurrentHashMap<>();
-    
+
     /**
      * get all client.
      *
@@ -47,7 +49,7 @@ public class RpcClientFactory {
     public static Set<Map.Entry<String, RpcClient>> getAllClientEntries() {
         return CLIENT_MAP.entrySet();
     }
-    
+
     /**
      * shut down client.
      *
@@ -59,16 +61,17 @@ public class RpcClientFactory {
             rpcClient.shutdown();
         }
     }
-    
+
     public static RpcClient getClient(String clientName) {
         return CLIENT_MAP.get(clientName);
     }
-    
+
     /**
      * create a rpc client.
+     * 创建一个rpc的客户端
      *
-     * @param clientName     client name.
-     * @param connectionType client type.
+     * @param clientName     client name. 客户端名称
+     * @param connectionType client type. 客户端类型
      * @return rpc client.
      */
     public static RpcClient createClient(String clientName, ConnectionType connectionType, Map<String, String> labels) {
@@ -86,7 +89,7 @@ public class RpcClientFactory {
             return client;
         });
     }
-    
+
     /**
      * create a rpc client.
      *
@@ -110,5 +113,5 @@ public class RpcClientFactory {
             return client;
         });
     }
-    
+
 }

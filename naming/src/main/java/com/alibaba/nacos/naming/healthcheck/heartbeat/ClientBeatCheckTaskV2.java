@@ -30,37 +30,39 @@ import java.util.Collection;
 
 /**
  * Client beat check task of service for version 2.x.
+ * 2.x版本服务的客户端检查任务
  *
  * @author nkorange
  */
 public class ClientBeatCheckTaskV2 extends AbstractExecuteTask implements BeatCheckTask, NacosHealthCheckTask {
-    
+
     private final IpPortBasedClient client;
-    
+
     private final String taskId;
-    
+
     private final InstanceBeatCheckTaskInterceptorChain interceptorChain;
-    
+
     public ClientBeatCheckTaskV2(IpPortBasedClient client) {
         this.client = client;
         this.taskId = client.getResponsibleId();
+        // 创建实例心跳检查拦截器链
         this.interceptorChain = InstanceBeatCheckTaskInterceptorChain.getInstance();
     }
-    
+
     public GlobalConfig getGlobalConfig() {
         return ApplicationUtils.getBean(GlobalConfig.class);
     }
-    
+
     @Override
     public String taskKey() {
         return KeyBuilder.buildServiceMetaKey(client.getClientId(), String.valueOf(client.isEphemeral()));
     }
-    
+
     @Override
     public String getTaskId() {
         return taskId;
     }
-    
+
     @Override
     public void doHealthCheck() {
         try {
@@ -74,17 +76,17 @@ public class ClientBeatCheckTaskV2 extends AbstractExecuteTask implements BeatCh
             Loggers.SRV_LOG.warn("Exception while processing client beat time out.", e);
         }
     }
-    
+
     @Override
     public void run() {
         doHealthCheck();
     }
-    
+
     @Override
     public void passIntercept() {
         doHealthCheck();
     }
-    
+
     @Override
     public void afterIntercept() {
     }

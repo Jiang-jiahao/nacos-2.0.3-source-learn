@@ -31,10 +31,10 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 @SuppressWarnings("PMD.AbstractClassShouldStartWithAbstractNamingRule")
 public abstract class RequestHandler<T extends Request, S extends Response> {
-    
+
     @Autowired
     private RequestFilters requestFilters;
-    
+
     /**
      * Handler request.
      *
@@ -44,6 +44,7 @@ public abstract class RequestHandler<T extends Request, S extends Response> {
      * @throws NacosException nacos exception when handle request has problem.
      */
     public Response handleRequest(T request, RequestMeta meta) throws NacosException {
+        // 因为是rpc，这里需要执行下filter
         for (AbstractRequestFilter filter : requestFilters.filters) {
             try {
                 Response filterResult = filter.filter(request, meta, this.getClass());
@@ -53,11 +54,12 @@ public abstract class RequestHandler<T extends Request, S extends Response> {
             } catch (Throwable throwable) {
                 Loggers.REMOTE.error("filter error", throwable);
             }
-            
+
         }
+        // 根据传入的type执行对应的requestHandler
         return handle(request, meta);
     }
-    
+
     /**
      * Handler request.
      *
@@ -67,5 +69,5 @@ public abstract class RequestHandler<T extends Request, S extends Response> {
      * @throws NacosException nacos exception when handle request has problem.
      */
     public abstract S handle(T request, RequestMeta meta) throws NacosException;
-    
+
 }

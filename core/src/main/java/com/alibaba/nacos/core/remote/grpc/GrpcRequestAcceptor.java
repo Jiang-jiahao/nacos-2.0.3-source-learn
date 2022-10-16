@@ -41,19 +41,20 @@ import static com.alibaba.nacos.core.remote.grpc.BaseGrpcServer.CONTEXT_KEY_CONN
 
 /**
  * rpc request accetor of grpc.
+ * grpc请求接收器
  *
  * @author liuzunfei
  * @version $Id: GrpcCommonRequestAcceptor.java, v 0.1 2020年09月01日 10:52 AM liuzunfei Exp $
  */
 @Service
 public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
-    
+
     @Autowired
     RequestHandlerRegistry requestHandlerRegistry;
-    
+
     @Autowired
     private ConnectionManager connectionManager;
-    
+
     private void traceIfNecessary(Payload grpcRequest, boolean receive) {
         String clientIp = grpcRequest.getMetadata().getClientIp();
         String connectionId = CONTEXT_KEY_CONN_ID.get();
@@ -67,26 +68,26 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
             Loggers.REMOTE_DIGEST.error("[{}]Monitor request error,payload={},error={}", connectionId, clientIp,
                     grpcRequest.toByteString().toStringUtf8());
         }
-        
+
     }
-    
+
     @Override
     public void request(Payload grpcRequest, StreamObserver<Payload> responseObserver) {
-        
+
         traceIfNecessary(grpcRequest, true);
         String type = grpcRequest.getMetadata().getType();
-        
+
         //server is on starting.
         if (!ApplicationUtils.isStarted()) {
             Payload payloadResponse = GrpcUtils.convert(
                     buildErrorResponse(NacosException.INVALID_SERVER_STATUS, "Server is starting,please try later."));
             traceIfNecessary(payloadResponse, false);
             responseObserver.onNext(payloadResponse);
-            
+
             responseObserver.onCompleted();
             return;
         }
-        
+
         // server check.
         if (ServerCheckRequest.class.getSimpleName().equals(type)) {
             Payload serverCheckResponseP = GrpcUtils.convert(new ServerCheckResponse(CONTEXT_KEY_CONN_ID.get()));
@@ -95,7 +96,7 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
             responseObserver.onCompleted();
             return;
         }
-        
+
         RequestHandler requestHandler = requestHandlerRegistry.getByRequestType(type);
         //no handler found.
         if (requestHandler == null) {
@@ -107,7 +108,7 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
             responseObserver.onCompleted();
             return;
         }
-        
+
         //check connection status.
         String connectionId = CONTEXT_KEY_CONN_ID.get();
         boolean requestValid = connectionManager.checkValid(connectionId);
@@ -121,7 +122,7 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
             responseObserver.onCompleted();
             return;
         }
-        
+
         Object parseObj = null;
         try {
             parseObj = GrpcUtils.parse(grpcRequest);
@@ -134,7 +135,7 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
             responseObserver.onCompleted();
             return;
         }
-        
+
         if (parseObj == null) {
             Loggers.REMOTE_DIGEST.warn("[{}] Invalid request receive  ,parse request is null", connectionId);
             Payload payloadResponse = GrpcUtils
@@ -143,7 +144,7 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
             responseObserver.onNext(payloadResponse);
             responseObserver.onCompleted();
         }
-        
+
         if (!(parseObj instanceof Request)) {
             Loggers.REMOTE_DIGEST
                     .warn("[{}] Invalid request receive  ,parsed payload is not a request,parseObj={}", connectionId,
@@ -155,7 +156,7 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
             responseObserver.onCompleted();
             return;
         }
-        
+
         Request request = (Request) parseObj;
         try {
             Connection connection = connectionManager.getConnection(CONTEXT_KEY_CONN_ID.get());
@@ -181,9 +182,9 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
             responseObserver.onNext(payloadResponse);
             responseObserver.onCompleted();
         }
-        
+
     }
-    
+
     private Response buildErrorResponse(int errorCode, String msg) {
         ErrorResponse response = new ErrorResponse();
         response.setErrorInfo(errorCode, msg);

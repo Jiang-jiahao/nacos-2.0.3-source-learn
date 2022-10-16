@@ -21,12 +21,13 @@ import com.alibaba.nacos.api.remote.response.Response;
 
 /**
  * ServerRequestHandler, to process the request from server side.
+ * 用于处理来自服务器端的请求
  *
  * @author liuzunfei
  * @version $Id: ServerRequestHandler.java, v 0.1 2020年07月14日 11:41 AM liuzunfei Exp $
  */
 public interface ServerRequestHandler {
-    
+
     /**
      * Handle request from server.
      *
@@ -34,5 +35,5 @@ public interface ServerRequestHandler {
      * @return response.
      */
     Response requestReply(Request request);
-    
+
 }

@@ -41,29 +41,29 @@ import java.util.Optional;
  * @author nacos
  */
 public class HealthCheckTaskV2 extends AbstractExecuteTask implements NacosHealthCheckTask {
-    
+
     private final IpPortBasedClient client;
-    
+
     private final String taskId;
-    
+
     private final SwitchDomain switchDomain;
-    
+
     private final NamingMetadataManager metadataManager;
-    
+
     private long checkRtNormalized = -1;
-    
+
     private long checkRtBest = -1;
-    
+
     private long checkRtWorst = -1;
-    
+
     private long checkRtLast = -1;
-    
+
     private long checkRtLastLast = -1;
-    
+
     private long startTime;
-    
+
     private volatile boolean cancelled = false;
-    
+
     public HealthCheckTaskV2(IpPortBasedClient client) {
         this.client = client;
         this.taskId = client.getResponsibleId();
@@ -71,7 +71,7 @@ public class HealthCheckTaskV2 extends AbstractExecuteTask implements NacosHealt
         this.metadataManager = ApplicationUtils.getBean(NamingMetadataManager.class);
         initCheckRT();
     }
-    
+
     private void initCheckRT() {
         // first check time delay
         checkRtNormalized =
@@ -79,23 +79,28 @@ public class HealthCheckTaskV2 extends AbstractExecuteTask implements NacosHealt
         checkRtBest = Long.MAX_VALUE;
         checkRtWorst = 0L;
     }
-    
+
     public IpPortBasedClient getClient() {
         return client;
     }
-    
+
     @Override
     public String getTaskId() {
         return taskId;
     }
-    
+
     @Override
     public void doHealthCheck() {
         try {
+            // 获取当前传入的Client所发布的所有Service
             for (Service each : client.getAllPublishedService()) {
+                // 只有当Service开启了健康检查才执行
                 if (switchDomain.isHealthCheckEnabled(each.getGroupedServiceName())) {
+                    // 获取Service对应的InstancePublishInfo
                     InstancePublishInfo instancePublishInfo = client.getInstancePublishInfo(each);
+                    // 获取集群元数据
                     ClusterMetadata metadata = getClusterMetadata(each, instancePublishInfo);
+                    // 使用Processor代理对象对任务进行处理，根据元数据的健康检查类型来分配检查的任务，有http、mysql、tcp
                     ApplicationUtils.getBean(HealthCheckProcessorV2Delegate.class).process(this, each, metadata);
                     if (Loggers.EVT_LOG.isDebugEnabled()) {
                         Loggers.EVT_LOG.debug("[HEALTH-CHECK-V2] schedule health check task: {}", client.getClientId());
@@ -105,6 +110,7 @@ public class HealthCheckTaskV2 extends AbstractExecuteTask implements NacosHealt
         } catch (Throwable e) {
             Loggers.SRV_LOG.error("[HEALTH-CHECK-V2] error while process health check for {}", client.getClientId(), e);
         } finally {
+            // 若任务执行状态为已取消，则再次启动
             if (!cancelled) {
                 HealthCheckReactor.scheduleCheck(this);
                 // worst == 0 means never checked
@@ -124,24 +130,24 @@ public class HealthCheckTaskV2 extends AbstractExecuteTask implements NacosHealt
             }
         }
     }
-    
+
     @Override
     public void passIntercept() {
         doHealthCheck();
     }
-    
+
     @Override
     public void afterIntercept() {
         if (!cancelled) {
             HealthCheckReactor.scheduleCheck(this);
         }
     }
-    
+
     @Override
     public void run() {
         doHealthCheck();
     }
-    
+
     private ClusterMetadata getClusterMetadata(Service service, InstancePublishInfo instancePublishInfo) {
         Optional<ServiceMetadata> serviceMetadata = metadataManager.getServiceMetadata(service);
         if (!serviceMetadata.isPresent()) {
@@ -151,59 +157,59 @@ public class HealthCheckTaskV2 extends AbstractExecuteTask implements NacosHealt
         ClusterMetadata result = serviceMetadata.get().getClusters().get(cluster);
         return null == result ? new ClusterMetadata() : result;
     }
-    
+
     public long getCheckRtNormalized() {
         return checkRtNormalized;
     }
-    
+
     public long getCheckRtBest() {
         return checkRtBest;
     }
-    
+
     public long getCheckRtWorst() {
         return checkRtWorst;
     }
-    
+
     public void setCheckRtWorst(long checkRtWorst) {
         this.checkRtWorst = checkRtWorst;
     }
-    
+
     public void setCheckRtBest(long checkRtBest) {
         this.checkRtBest = checkRtBest;
     }
-    
+
     public void setCheckRtNormalized(long checkRtNormalized) {
         this.checkRtNormalized = checkRtNormalized;
     }
-    
+
     public boolean isCancelled() {
         return cancelled;
     }
-    
+
     public void setCancelled(boolean cancelled) {
         this.cancelled = cancelled;
     }
-    
+
     public long getStartTime() {
         return startTime;
     }
-    
+
     public void setStartTime(long startTime) {
         this.startTime = startTime;
     }
-    
+
     public long getCheckRtLast() {
         return checkRtLast;
     }
-    
+
     public void setCheckRtLast(long checkRtLast) {
         this.checkRtLast = checkRtLast;
     }
-    
+
     public long getCheckRtLastLast() {
         return checkRtLastLast;
     }
-    
+
     public void setCheckRtLastLast(long checkRtLastLast) {
         this.checkRtLastLast = checkRtLastLast;
     }

@@ -87,13 +87,18 @@ public class NamingGrpcClientProxy extends AbstractNamingClientProxy {
         // 创建rpc客户端
         this.rpcClient = RpcClientFactory.createClient(uuid, ConnectionType.GRPC, labels);
         this.redoService = new NamingGrpcRedoService(this);
+        // 启动rpc客户端
         start(serverListFactory, serviceInfoHolder);
     }
 
     private void start(ServerListFactory serverListFactory, ServiceInfoHolder serviceInfoHolder) throws NacosException {
+        // 初始化服务器列表工厂
         rpcClient.serverListFactory(serverListFactory);
+        // 注册重试服务
         rpcClient.registerConnectionListener(redoService);
+        // 注册处理服务器推送请求的处理程序
         rpcClient.registerServerRequestHandler(new NamingPushRequestHandler(serviceInfoHolder));
+        // 启动rpc客户端
         rpcClient.start();
         NotifyCenter.registerSubscriber(this);
     }
