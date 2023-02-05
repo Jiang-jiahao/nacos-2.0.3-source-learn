@@ -33,19 +33,20 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author xiweng.yy
  */
 public class NamingEventPublisherFactory implements EventPublisherFactory {
-    
+
     private static final NamingEventPublisherFactory INSTANCE = new NamingEventPublisherFactory();
-    
+
     private final Map<Class<? extends Event>, NamingEventPublisher> publisher;
-    
+
     private NamingEventPublisherFactory() {
         publisher = new ConcurrentHashMap<>();
     }
-    
+
     public static NamingEventPublisherFactory getInstance() {
         return INSTANCE;
     }
-    
+
+    // 创建naming事件发布器的工厂
     @Override
     public EventPublisher apply(final Class<? extends Event> eventType, final Integer maxQueueSize) {
         // Like ClientEvent$ClientChangeEvent cache by ClientEvent
@@ -58,7 +59,7 @@ public class NamingEventPublisherFactory implements EventPublisherFactory {
         });
         return publisher.get(cachedEventType);
     }
-    
+
     public String getAllPublisherStatues() {
         StringBuilder result = new StringBuilder("Naming event publisher statues:\n");
         for (NamingEventPublisher each : publisher.values()) {

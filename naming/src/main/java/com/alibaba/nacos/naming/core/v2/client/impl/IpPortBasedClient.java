@@ -30,6 +30,7 @@ import java.util.Collection;
 
 /**
  * Nacos naming client based ip and port.
+ * 基于IP+Port的客户端定义
  *
  * <p>The client is bind to the ip and port users registered. It's a abstract content to simulate the tcp session
  * client.
@@ -37,63 +38,68 @@ import java.util.Collection;
  * @author xiweng.yy
  */
 public class IpPortBasedClient extends AbstractClient {
-    
+
     public static final String ID_DELIMITER = "#";
-    
+
+    // 客户端唯一标识，默认格式：ip:port#ephemeral
     private final String clientId;
-    
+
+    // Client对应的实例是否临时的（默认true）
     private final boolean ephemeral;
-    
+
+    // 表示当前客户端的负责的标识，默认responsibleId的值就是从clientId中取#之前的字符串；
     private final String responsibleId;
-    
+
+    // 客户端心跳检查任务ClientBeatCheckTaskV2
     private ClientBeatCheckTaskV2 beatCheckTask;
-    
+
+    // 客户端健康检查任务HealthCheckTaskV2
     private HealthCheckTaskV2 healthCheckTaskV2;
-    
+
     public IpPortBasedClient(String clientId, boolean ephemeral) {
         this.ephemeral = ephemeral;
         this.clientId = clientId;
         this.responsibleId = getResponsibleTagFromId();
     }
-    
+
     private String getResponsibleTagFromId() {
         int index = clientId.indexOf(IpPortBasedClient.ID_DELIMITER);
         return clientId.substring(0, index);
     }
-    
+
     public static String getClientId(String address, boolean ephemeral) {
         return address + ID_DELIMITER + ephemeral;
     }
-    
+
     @Override
     public String getClientId() {
         return clientId;
     }
-    
+
     @Override
     public boolean isEphemeral() {
         return ephemeral;
     }
-    
+
     public String getResponsibleId() {
         return responsibleId;
     }
-    
+
     @Override
     public boolean addServiceInstance(Service service, InstancePublishInfo instancePublishInfo) {
         return super.addServiceInstance(service, parseToHealthCheckInstance(instancePublishInfo));
     }
-    
+
     @Override
     public boolean isExpire(long currentTime) {
         return isEphemeral() && getAllPublishedService().isEmpty() && currentTime - getLastUpdatedTime() > ClientConfig
                 .getInstance().getClientExpiredTime();
     }
-    
+
     public Collection<InstancePublishInfo> getAllInstancePublishInfo() {
         return publishers.values();
     }
-    
+
     @Override
     public void release() {
         super.release();
@@ -103,7 +109,7 @@ public class IpPortBasedClient extends AbstractClient {
             healthCheckTaskV2.setCancelled(true);
         }
     }
-    
+
     private HealthCheckInstancePublishInfo parseToHealthCheckInstance(InstancePublishInfo instancePublishInfo) {
         HealthCheckInstancePublishInfo result;
         if (instancePublishInfo instanceof HealthCheckInstancePublishInfo) {
@@ -121,9 +127,10 @@ public class IpPortBasedClient extends AbstractClient {
         }
         return result;
     }
-    
+
     /**
      * Init client.
+     * 初始化client
      */
     public void init() {
         if (ephemeral) {
@@ -134,7 +141,7 @@ public class IpPortBasedClient extends AbstractClient {
             HealthCheckReactor.scheduleCheck(healthCheckTaskV2);
         }
     }
-    
+
     /**
      * Purely put instance into service without publish events.
      */

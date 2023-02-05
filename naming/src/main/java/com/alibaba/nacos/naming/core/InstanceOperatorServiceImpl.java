@@ -64,19 +64,19 @@ import static com.alibaba.nacos.naming.misc.UtilsAndCommons.UPDATE_INSTANCE_META
  */
 @Component
 public class InstanceOperatorServiceImpl implements InstanceOperator {
-    
+
     private final ServiceManager serviceManager;
-    
+
     private final SwitchDomain switchDomain;
-    
+
     private final UdpPushService pushService;
-    
+
     private final NamingSubscriberServiceV1Impl subscriberServiceV1;
-    
+
     private final InstanceUpgradeHelper instanceUpgradeHelper;
-    
+
     private DataSource pushDataSource = new DataSource() {
-        
+
         @Override
         public String getData(PushClient client) {
             ServiceInfo result = new ServiceInfo(client.getServiceName(), client.getClusters());
@@ -89,13 +89,13 @@ public class InstanceOperatorServiceImpl implements InstanceOperator {
             } catch (Exception e) {
                 Loggers.SRV_LOG.warn("PUSH-SERVICE: service is not modified", e);
             }
-            
+
             // overdrive the cache millis to push mode
             result.setCacheMillis(switchDomain.getPushCacheMillis(client.getServiceName()));
             return JacksonUtils.toJson(result);
         }
     };
-    
+
     public InstanceOperatorServiceImpl(ServiceManager serviceManager, SwitchDomain switchDomain,
             UdpPushService pushService, NamingSubscriberServiceV1Impl subscriberServiceV1,
             InstanceUpgradeHelper instanceUpgradeHelper) {
@@ -105,14 +105,14 @@ public class InstanceOperatorServiceImpl implements InstanceOperator {
         this.subscriberServiceV1 = subscriberServiceV1;
         this.instanceUpgradeHelper = instanceUpgradeHelper;
     }
-    
+
     @Override
     public void registerInstance(String namespaceId, String serviceName, Instance instance) throws NacosException {
         // 转换为v1版本的instance，并校验ip地址格式是否正确
         com.alibaba.nacos.naming.core.Instance coreInstance = parseInstance(instance);
         serviceManager.registerInstance(namespaceId, serviceName, coreInstance);
     }
-    
+
     @Override
     public void removeInstance(String namespaceId, String serviceName, Instance instance) throws NacosException {
         // 转换为v1版本的instance，并校验ip地址格式是否正确
@@ -125,16 +125,17 @@ public class InstanceOperatorServiceImpl implements InstanceOperator {
         }
         serviceManager.removeInstance(namespaceId, serviceName, instance.isEphemeral(), coreInstance);
     }
-    
+
     @Override
     public void updateInstance(String namespaceId, String serviceName, Instance instance) throws NacosException {
         com.alibaba.nacos.naming.core.Instance coreInstance = parseInstance(instance);
         serviceManager.updateInstance(namespaceId, serviceName, coreInstance);
     }
-    
+
     @Override
     public void patchInstance(String namespaceId, String serviceName, InstancePatchObject patchObject)
             throws NacosException {
+        // 获取到对应的实例
         com.alibaba.nacos.naming.core.Instance instance = serviceManager
                 .getInstance(namespaceId, serviceName, patchObject.getCluster(), patchObject.getIp(),
                         patchObject.getPort());
@@ -155,20 +156,23 @@ public class InstanceOperatorServiceImpl implements InstanceOperator {
         }
         instance.setLastBeat(System.currentTimeMillis());
         instance.validate();
+        // 更新实例的信息，如app，metadata等
         serviceManager.updateInstance(namespaceId, serviceName, instance);
     }
-    
+
     @Override
     public ServiceInfo listInstance(String namespaceId, String serviceName, Subscriber subscriber, String cluster,
             boolean healthOnly) throws Exception {
         ClientInfo clientInfo = new ClientInfo(subscriber.getAgent());
         String clientIP = subscriber.getIp();
         ServiceInfo result = new ServiceInfo(serviceName, cluster);
+        // 获取对应的服务
         Service service = serviceManager.getService(namespaceId, serviceName);
         long cacheMillis = switchDomain.getDefaultCacheMillis();
-        
+
         // now try to enable the push
         try {
+            // 如果需要订阅，这里udp不会为0，判断是否能启用udp推送，如果可以则添加
             if (subscriber.getPort() > 0 && pushService.canEnablePush(subscriber.getAgent())) {
                 subscriberServiceV1.addClient(namespaceId, serviceName, cluster, subscriber.getAgent(),
                         new InetSocketAddress(clientIP, subscriber.getPort()), pushDataSource, StringUtils.EMPTY,
@@ -180,7 +184,7 @@ public class InstanceOperatorServiceImpl implements InstanceOperator {
                     subscriber.getPort(), e);
             cacheMillis = switchDomain.getDefaultCacheMillis();
         }
-        
+        // 服务为空则返回
         if (service == null) {
             if (Loggers.SRV_LOG.isDebugEnabled()) {
                 Loggers.SRV_LOG.debug("no instance to serve for service: {}", serviceName);
@@ -188,47 +192,50 @@ public class InstanceOperatorServiceImpl implements InstanceOperator {
             result.setCacheMillis(cacheMillis);
             return result;
         }
-        
+        // 检查服务是否可用
         checkIfDisabled(service);
-        
+        // 获取到集群下所有的实例
         List<com.alibaba.nacos.naming.core.Instance> srvedIps = service
                 .srvIPs(Arrays.asList(StringUtils.split(cluster, StringUtils.COMMA)));
-        
+
         // filter ips using selector:
+        // 使用选择器过滤实例
         if (service.getSelector() != null && StringUtils.isNotBlank(clientIP)) {
             srvedIps = service.getSelector().select(clientIP, srvedIps);
         }
-        
+
         if (CollectionUtils.isEmpty(srvedIps)) {
-            
+
             if (Loggers.SRV_LOG.isDebugEnabled()) {
                 Loggers.SRV_LOG.debug("no instance to serve for service: {}", serviceName);
             }
-            
+
             result.setCacheMillis(cacheMillis);
             result.setLastRefTime(System.currentTimeMillis());
             result.setChecksum(service.getChecksum());
             return result;
         }
-        
+        // 用于计算不健康实例的个数
         long total = 0;
         Map<Boolean, List<com.alibaba.nacos.naming.core.Instance>> ipMap = new HashMap<>(2);
         ipMap.put(Boolean.TRUE, new ArrayList<>());
         ipMap.put(Boolean.FALSE, new ArrayList<>());
-        
+
         for (com.alibaba.nacos.naming.core.Instance ip : srvedIps) {
             // remove disabled instance:
+            // 移除停用的实例
             if (!ip.isEnabled()) {
                 continue;
             }
             ipMap.get(ip.isHealthy()).add(ip);
             total += 1;
         }
-        
+        // 获取保护阈值
         double threshold = service.getProtectThreshold();
         List<Instance> hosts;
+        // 当健康实例/非健康实例小于等于保护阈值的时候
         if ((float) ipMap.get(Boolean.TRUE).size() / total <= threshold) {
-            
+
             Loggers.SRV_LOG.warn("protect threshold reached, return all ips, service: {}", result.getName());
             result.setReachProtectionThreshold(true);
             hosts = Stream.of(Boolean.TRUE, Boolean.FALSE).map(ipMap::get).flatMap(Collection::stream)
@@ -242,21 +249,21 @@ public class InstanceOperatorServiceImpl implements InstanceOperator {
                 hosts.addAll(ipMap.get(Boolean.FALSE));
             }
         }
-        
+
         result.setHosts(hosts);
         result.setCacheMillis(cacheMillis);
         result.setLastRefTime(System.currentTimeMillis());
         result.setChecksum(service.getChecksum());
         return result;
     }
-    
+
     @Override
     public Instance getInstance(String namespaceId, String serviceName, String cluster, String ip, int port)
             throws NacosException {
         Service service = serviceManager.getService(namespaceId, serviceName);
-        
+
         serviceManager.checkServiceIsNull(service, namespaceId, serviceName);
-        
+
         List<String> clusters = new ArrayList<>();
         clusters.add(cluster);
         List<com.alibaba.nacos.naming.core.Instance> ips = service.allIPs(clusters);
@@ -271,34 +278,34 @@ public class InstanceOperatorServiceImpl implements InstanceOperator {
         }
         throw new NacosException(NacosException.NOT_FOUND, "no matched ip found!");
     }
-    
+
     private void checkIfDisabled(Service service) throws Exception {
         if (!service.getEnabled()) {
             throw new Exception("service is disabled now.");
         }
     }
-    
+
     @Override
     public int handleBeat(String namespaceId, String serviceName, String ip, int port, String cluster,
             RsInfo clientBeat, BeatInfoInstanceBuilder builder) throws NacosException {
         com.alibaba.nacos.naming.core.Instance instance = serviceManager
                 .getInstance(namespaceId, serviceName, cluster, ip, port);
-        
+
         if (instance == null) {
             if (clientBeat == null) {
                 return NamingResponseCode.RESOURCE_NOT_FOUND;
             }
-            
+
             Loggers.SRV_LOG.warn("[CLIENT-BEAT] The instance has been removed for health mechanism, "
                     + "perform data compensation operations, beat: {}, serviceName: {}", clientBeat, serviceName);
             instance = parseInstance(builder.setBeatInfo(clientBeat).setServiceName(serviceName).build());
             serviceManager.registerInstance(namespaceId, serviceName, instance);
         }
-        
+
         Service service = serviceManager.getService(namespaceId, serviceName);
-        
+
         serviceManager.checkServiceIsNull(service, namespaceId, serviceName);
-        
+
         if (clientBeat == null) {
             clientBeat = new RsInfo();
             clientBeat.setIp(ip);
@@ -308,7 +315,7 @@ public class InstanceOperatorServiceImpl implements InstanceOperator {
         service.processClientBeat(clientBeat);
         return NamingResponseCode.OK;
     }
-    
+
     @Override
     public long getHeartBeatInterval(String namespaceId, String serviceName, String ip, int port, String cluster) {
         com.alibaba.nacos.naming.core.Instance instance = serviceManager
@@ -318,28 +325,30 @@ public class InstanceOperatorServiceImpl implements InstanceOperator {
         }
         return switchDomain.getClientBeatInterval();
     }
-    
+
     @Override
     public List<? extends Instance> listAllInstances(String namespaceId, String serviceName) throws NacosException {
         Service service = serviceManager.getService(namespaceId, serviceName);
-        
+
         serviceManager.checkServiceIsNull(service, namespaceId, serviceName);
-        
+
         return service.allIPs();
     }
-    
+
     @Override
     public List<String> batchUpdateMetadata(String namespaceId, InstanceOperationInfo instanceOperationInfo,
             Map<String, String> metadata) {
+        // 更新实例元数据
         return batchOperate(namespaceId, instanceOperationInfo, metadata, UPDATE_INSTANCE_METADATA_ACTION_UPDATE);
     }
-    
+
     @Override
     public List<String> batchDeleteMetadata(String namespaceId, InstanceOperationInfo instanceOperationInfo,
             Map<String, String> metadata) throws NacosException {
         return batchOperate(namespaceId, instanceOperationInfo, metadata, UPDATE_INSTANCE_METADATA_ACTION_REMOVE);
     }
-    
+
+    // 批量操作方法
     private List<String> batchOperate(String namespaceId, InstanceOperationInfo instanceOperationInfo,
             Map<String, String> metadata, String updateInstanceMetadataAction) {
         List<String> result = new LinkedList<>();
@@ -349,7 +358,7 @@ public class InstanceOperatorServiceImpl implements InstanceOperator {
         }
         return result;
     }
-    
+
     private List<com.alibaba.nacos.naming.core.Instance> batchOperateMetadata(String namespace,
             InstanceOperationInfo instanceOperationInfo, Map<String, String> metadata, String action) {
         Function<InstanceOperationContext, List<com.alibaba.nacos.naming.core.Instance>> operateFunction = instanceOperationContext -> {
@@ -364,7 +373,7 @@ public class InstanceOperatorServiceImpl implements InstanceOperator {
         };
         return serviceManager.batchOperate(namespace, instanceOperationInfo, operateFunction);
     }
-    
+
     private com.alibaba.nacos.naming.core.Instance parseInstance(Instance apiInstance) throws NacosException {
         // 将现在的Instance转为v1版本的Instance
         com.alibaba.nacos.naming.core.Instance result = instanceUpgradeHelper.toV1(apiInstance);

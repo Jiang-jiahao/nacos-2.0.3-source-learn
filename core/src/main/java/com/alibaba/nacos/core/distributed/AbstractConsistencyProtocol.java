@@ -34,22 +34,22 @@ import java.util.Map;
 @SuppressWarnings("all")
 public abstract class AbstractConsistencyProtocol<T extends Config, L extends RequestProcessor>
         implements ConsistencyProtocol<T, L> {
-    
+    // 一致性协议元数据信息
     protected final ProtocolMetaData metaData = new ProtocolMetaData();
-    
+    // 线程安全的处理器map
     protected Map<String, L> processorMap = Collections.synchronizedMap(new HashMap<>());
-    
+
     public void loadLogProcessor(List<L> logProcessors) {
         logProcessors.forEach(logDispatcher -> processorMap.put(logDispatcher.group(), logDispatcher));
     }
-    
+
     protected Map<String, L> allProcessor() {
         return processorMap;
     }
-    
+
     @Override
     public ProtocolMetaData protocolMetaData() {
         return this.metaData;
     }
-    
+
 }

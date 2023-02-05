@@ -22,11 +22,12 @@ import com.alibaba.nacos.naming.push.v2.PushDataWrapper;
 
 /**
  * Nacos naming push executor for v2.
+ * Nacos naming 推送执行器v2
  *
  * @author xiweng.yy
  */
 public interface PushExecutor {
-    
+
     /**
      * Do push.
      *
@@ -35,7 +36,7 @@ public interface PushExecutor {
      * @param data       push data
      */
     void doPush(String clientId, Subscriber subscriber, PushDataWrapper data);
-    
+
     /**
      * Do push with callback.
      *

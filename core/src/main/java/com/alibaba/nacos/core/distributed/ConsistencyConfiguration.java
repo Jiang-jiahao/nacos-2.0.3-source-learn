@@ -29,23 +29,24 @@ import java.util.concurrent.Callable;
 
 /**
  * consistency configuration.
+ * 一致性协议配置
  *
  * @author <a href="mailto:liaochuntao@live.com">liaochuntao</a>
  */
 @Configuration
 public class ConsistencyConfiguration {
-    
+
     @Bean(value = "strongAgreementProtocol")
     public CPProtocol strongAgreementProtocol(ServerMemberManager memberManager) throws Exception {
         final CPProtocol protocol = getProtocol(CPProtocol.class, () -> new JRaftProtocol(memberManager));
         return protocol;
     }
-    
+
     private <T> T getProtocol(Class<T> cls, Callable<T> builder) throws Exception {
         Collection<T> protocols = NacosServiceLoader.load(cls);
-        
+
         // Select only the first implementation
-        
+
         Iterator<T> iterator = protocols.iterator();
         if (iterator.hasNext()) {
             return iterator.next();
@@ -53,5 +54,5 @@ public class ConsistencyConfiguration {
             return builder.call();
         }
     }
-    
+
 }

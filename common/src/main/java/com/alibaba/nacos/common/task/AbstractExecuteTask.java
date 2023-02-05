@@ -18,13 +18,14 @@ package com.alibaba.nacos.common.task;
 
 /**
  * Abstract task which should be executed immediately.
+ * 立即执行的抽象任务
  *
  * @author xiweng.yy
  */
 public abstract class AbstractExecuteTask implements NacosTask, Runnable {
-    
+
     protected static final long INTERVAL = 3000L;
-    
+
     @Override
     public boolean shouldProcess() {
         return true;

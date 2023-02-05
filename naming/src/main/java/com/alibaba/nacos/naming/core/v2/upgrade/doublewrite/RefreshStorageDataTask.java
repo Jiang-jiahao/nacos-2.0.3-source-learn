@@ -23,17 +23,18 @@ import com.alibaba.nacos.sys.utils.ApplicationUtils;
 
 /**
  * Refresh service storage cache data when upgrading.
+ * 升级时刷新服务存储缓存数据
  *
  * @author xiweng.yy
  */
 public class RefreshStorageDataTask extends AbstractExecuteTask {
-    
+
     private final Service service;
-    
+
     public RefreshStorageDataTask(Service service) {
         this.service = service;
     }
-    
+
     @Override
     public void run() {
         ApplicationUtils.getBean(ServiceStorage.class).getPushData(service);

@@ -24,13 +24,14 @@ import java.util.List;
 
 /**
  * log processor for cp.
+ * cp的日志处理器
  *
  * @author <a href="mailto:liaochuntao@live.com">liaochuntao</a>
  */
 @SuppressWarnings("all")
 public abstract class RequestProcessor4CP extends RequestProcessor {
-    
-    
+
+
     /**
      * Discovery snapshot handler It is up to LogProcessor to decide which SnapshotOperate should be loaded and saved by
      * itself.
@@ -40,5 +41,5 @@ public abstract class RequestProcessor4CP extends RequestProcessor {
     public List<SnapshotOperation> loadSnapshotOperate() {
         return Collections.emptyList();
     }
-    
+
 }

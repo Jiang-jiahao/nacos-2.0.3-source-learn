@@ -24,41 +24,44 @@ import com.alibaba.nacos.consistency.DataOperation;
  * @author xiweng.yy
  */
 public class DistroData {
-    
+
+    // 数据的key
     private DistroKey distroKey;
-    
+
+    // 数据的操作类型，也可以理解为是什么操作产生了此数据，或此数据用于什么操作
     private DataOperation type;
-    
+
+    // 数据的字节数组
     private byte[] content;
-    
+
     public DistroData() {
     }
-    
+
     public DistroData(DistroKey distroKey, byte[] content) {
         this.distroKey = distroKey;
         this.content = content;
     }
-    
+
     public DistroKey getDistroKey() {
         return distroKey;
     }
-    
+
     public void setDistroKey(DistroKey distroKey) {
         this.distroKey = distroKey;
     }
-    
+
     public DataOperation getType() {
         return type;
     }
-    
+
     public void setType(DataOperation type) {
         this.type = type;
     }
-    
+
     public byte[] getContent() {
         return content;
     }
-    
+
     public void setContent(byte[] content) {
         this.content = content;
     }

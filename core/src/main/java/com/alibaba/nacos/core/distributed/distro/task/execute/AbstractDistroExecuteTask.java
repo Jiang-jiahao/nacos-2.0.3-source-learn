@@ -33,79 +33,87 @@ import com.alibaba.nacos.core.utils.Loggers;
  * @author xiweng.yy
  */
 public abstract class AbstractDistroExecuteTask extends AbstractExecuteTask {
-    
+
     private final DistroKey distroKey;
-    
+
     private final DistroComponentHolder distroComponentHolder;
-    
+
     protected AbstractDistroExecuteTask(DistroKey distroKey, DistroComponentHolder distroComponentHolder) {
         this.distroKey = distroKey;
         this.distroComponentHolder = distroComponentHolder;
     }
-    
+
     protected DistroKey getDistroKey() {
         return distroKey;
     }
-    
+
     protected DistroComponentHolder getDistroComponentHolder() {
         return distroComponentHolder;
     }
-    
+
     @Override
     public void run() {
+        // 获取被处理的数据资源类型
         String type = getDistroKey().getResourceType();
+        // 根据类型获取数据传输代理
         DistroTransportAgent transportAgent = distroComponentHolder.findTransportAgent(type);
         if (null == transportAgent) {
             Loggers.DISTRO.warn("No found transport agent for type [{}]", type);
             return;
         }
         Loggers.DISTRO.info("[DISTRO-START] {}", toString());
+        // 判断代理对象是否支持回调
         if (transportAgent.supportCallbackTransport()) {
             doExecuteWithCallback(new DistroExecuteCallback());
         } else {
             executeDistroTask();
         }
     }
-    
+
+    // 执行任务
     private void executeDistroTask() {
         try {
             boolean result = doExecute();
             if (!result) {
+                // 执行失败之后，进行失败处理
                 handleFailedTask();
             }
             Loggers.DISTRO.info("[DISTRO-END] {} result: {}", toString(), result);
         } catch (Exception e) {
             Loggers.DISTRO.warn("[DISTRO] Sync data change failed.", e);
+            // 执行失败之后，进行失败处理
             handleFailedTask();
         }
     }
-    
+
     /**
      * Get {@link DataOperation} for current task.
      *
      * @return data operation
      */
     protected abstract DataOperation getDataOperation();
-    
+
     /**
      * Do execute for different sub class.
      *
      * @return result of execute
      */
     protected abstract boolean doExecute();
-    
+
     /**
      * Do execute with callback for different sub class.
      *
      * @param callback callback
      */
     protected abstract void doExecuteWithCallback(DistroCallback callback);
-    
+
     /**
      * Handle failed task.
+     * 处理失败的任务
      */
     protected void handleFailedTask() {
         String type = getDistroKey().getResourceType();
+        // 使用失败任务处理器进行重试
         DistroFailedTaskHandler failedTaskHandler = distroComponentHolder.findFailedTaskHandler(type);
         if (null == failedTaskHandler) {
             Loggers.DISTRO.warn("[DISTRO] Can't find failed task for type {}, so discarded", type);
@@ -113,16 +121,16 @@ public abstract class AbstractDistroExecuteTask extends AbstractExecuteTask {
         }
         failedTaskHandler.retry(getDistroKey(), getDataOperation());
     }
-    
+
     private class DistroExecuteCallback implements DistroCallback {
-        
+
         @Override
         public void onSuccess() {
             DistroRecord distroRecord = DistroRecordsHolder.getInstance().getRecord(getDistroKey().getResourceType());
             distroRecord.syncSuccess();
             Loggers.DISTRO.info("[DISTRO-END] {} result: true", getDistroKey().toString());
         }
-        
+
         @Override
         public void onFailed(Throwable throwable) {
             DistroRecord distroRecord = DistroRecordsHolder.getInstance().getRecord(getDistroKey().getResourceType());

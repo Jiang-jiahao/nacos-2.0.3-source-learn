@@ -38,16 +38,17 @@ import org.springframework.stereotype.Component;
  */
 @Component("ephemeralClientOperationService")
 public class EphemeralClientOperationServiceImpl implements ClientOperationService {
-    
+
     private final ClientManager clientManager;
-    
+
     public EphemeralClientOperationServiceImpl(ClientManagerDelegate clientManager) {
         this.clientManager = clientManager;
     }
-    
+
     @Override
     public void registerInstance(Service service, Instance instance, String clientId) {
         Service singleton = ServiceManager.getInstance().getSingleton(service);
+        // 这里有可能是ConnectionBasedClientManager，也可能是EphemeralIpPortClientManager
         Client client = clientManager.getClient(clientId);
         if (!clientIsLegal(client, clientId)) {
             return;
@@ -59,18 +60,21 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
         NotifyCenter
                 .publishEvent(new MetadataEvent.InstanceMetadataEvent(singleton, instanceInfo.getMetadataId(), false));
     }
-    
+
     @Override
     public void deregisterInstance(Service service, Instance instance, String clientId) {
+        // 判断service是否已经存在，不存在则报错
         if (!ServiceManager.getInstance().containSingleton(service)) {
             Loggers.SRV_LOG.warn("remove instance from non-exist service: {}", service);
             return;
         }
         Service singleton = ServiceManager.getInstance().getSingleton(service);
+        // 获取client
         Client client = clientManager.getClient(clientId);
         if (!clientIsLegal(client, clientId)) {
             return;
         }
+        // 删除client中的服务数据
         InstancePublishInfo removedInstance = client.removeServiceInstance(singleton);
         client.setLastUpdatedTime();
         if (null != removedInstance) {
@@ -79,7 +83,7 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
                     new MetadataEvent.InstanceMetadataEvent(singleton, removedInstance.getMetadataId(), true));
         }
     }
-    
+
     @Override
     public void subscribeService(Service service, Subscriber subscriber, String clientId) {
         Service singleton = ServiceManager.getInstance().getSingletonIfExist(service).orElse(service);
@@ -91,7 +95,7 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
         client.setLastUpdatedTime();
         NotifyCenter.publishEvent(new ClientOperationEvent.ClientSubscribeServiceEvent(singleton, clientId));
     }
-    
+
     @Override
     public void unsubscribeService(Service service, Subscriber subscriber, String clientId) {
         Service singleton = ServiceManager.getInstance().getSingletonIfExist(service).orElse(service);
@@ -103,7 +107,7 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
         client.setLastUpdatedTime();
         NotifyCenter.publishEvent(new ClientOperationEvent.ClientUnsubscribeServiceEvent(singleton, clientId));
     }
-    
+
     private boolean clientIsLegal(Client client, String clientId) {
         if (client == null) {
             Loggers.SRV_LOG.warn("Client connection {} already disconnect", clientId);

@@ -21,12 +21,13 @@ import com.alibaba.nacos.common.notify.listener.Subscriber;
 
 /**
  * Node change listeners.
+ * 节点改变监听器
  *
  * @author <a href="mailto:liaochuntao@live.com">liaochuntao</a>
  */
 @SuppressWarnings("PMD.AbstractClassShouldStartWithAbstractNamingRule")
 public abstract class MemberChangeListener extends Subscriber<MembersChangeEvent> {
-    
+
     /**
      * return NodeChangeEvent.class info.
      *
@@ -36,7 +37,7 @@ public abstract class MemberChangeListener extends Subscriber<MembersChangeEvent
     public Class<? extends Event> subscribeType() {
         return MembersChangeEvent.class;
     }
-    
+
     /**
      * Whether to ignore expired events.
      *

@@ -45,15 +45,19 @@ import java.util.concurrent.TimeUnit;
  */
 @Component("connectionBasedClientManager")
 public class ConnectionBasedClientManager extends ClientConnectionEventListener implements ClientManager {
-    
+
     private final ConcurrentMap<String, ConnectionBasedClient> clients = new ConcurrentHashMap<>();
-    
+
     public ConnectionBasedClientManager() {
         GlobalExecutor
                 .scheduleExpiredClientCleaner(new ExpiredClientCleaner(this), 0, Constants.DEFAULT_HEART_BEAT_INTERVAL,
                         TimeUnit.MILLISECONDS);
     }
-    
+
+    /**
+     * 客户端与服务端建立连接
+     * @param connect connect.
+     */
     @Override
     public void clientConnected(Connection connect) {
         if (!RemoteConstants.LABEL_MODULE_NAMING.equals(connect.getMetaInfo().getLabel(RemoteConstants.LABEL_MODULE))) {
@@ -64,14 +68,14 @@ public class ConnectionBasedClientManager extends ClientConnectionEventListener 
         attributes.addClientAttribute(ClientConstants.CONNECTION_METADATA, connect.getMetaInfo());
         clientConnected(connect.getMetaInfo().getConnectionId(), attributes);
     }
-    
+
     @Override
     public boolean clientConnected(String clientId, ClientAttributes attributes) {
         String type = attributes.getClientAttribute(ClientConstants.CONNECTION_TYPE);
         ClientFactory clientFactory = ClientFactoryHolder.getInstance().findClientFactory(type);
         return clientConnected(clientFactory.newClient(clientId, attributes));
     }
-    
+
     @Override
     public boolean clientConnected(final Client client) {
         clients.computeIfAbsent(client.getClientId(), s -> {
@@ -80,19 +84,19 @@ public class ConnectionBasedClientManager extends ClientConnectionEventListener 
         });
         return true;
     }
-    
+
     @Override
     public boolean syncClientConnected(String clientId, ClientAttributes attributes) {
         String type = attributes.getClientAttribute(ClientConstants.CONNECTION_TYPE);
         ClientFactory clientFactory = ClientFactoryHolder.getInstance().findClientFactory(type);
         return clientConnected(clientFactory.newSyncedClient(clientId, attributes));
     }
-    
+
     @Override
     public void clientDisConnected(Connection connect) {
         clientDisconnected(connect.getMetaInfo().getConnectionId());
     }
-    
+
     @Override
     public boolean clientDisconnected(String clientId) {
         Loggers.SRV_LOG.info("Client connection {} disconnect, remove instances and subscribers", clientId);
@@ -104,27 +108,27 @@ public class ConnectionBasedClientManager extends ClientConnectionEventListener 
         NotifyCenter.publishEvent(new ClientEvent.ClientDisconnectEvent(client));
         return true;
     }
-    
+
     @Override
     public Client getClient(String clientId) {
         return clients.get(clientId);
     }
-    
+
     @Override
     public boolean contains(String clientId) {
         return clients.containsKey(clientId);
     }
-    
+
     @Override
     public Collection<String> allClientId() {
         return clients.keySet();
     }
-    
+
     @Override
     public boolean isResponsibleClient(Client client) {
         return (client instanceof ConnectionBasedClient) && ((ConnectionBasedClient) client).isNative();
     }
-    
+
     @Override
     public boolean verifyClient(String clientId) {
         ConnectionBasedClient client = clients.get(clientId);
@@ -134,17 +138,18 @@ public class ConnectionBasedClientManager extends ClientConnectionEventListener 
         }
         return false;
     }
-    
+
     private static class ExpiredClientCleaner implements Runnable {
-        
+
         private final ConnectionBasedClientManager clientManager;
-        
+
         public ExpiredClientCleaner(ConnectionBasedClientManager clientManager) {
             this.clientManager = clientManager;
         }
-        
+
         @Override
         public void run() {
+            // 判断客户端是否已经过期，过期则清除
             long currentTime = System.currentTimeMillis();
             for (String each : clientManager.allClientId()) {
                 ConnectionBasedClient client = (ConnectionBasedClient) clientManager.getClient(each);

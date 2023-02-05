@@ -42,60 +42,73 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class DistroProtocol {
-    
+
+    // 服务成员管理器
     private final ServerMemberManager memberManager;
-    
+
+    // Distro组件持有者
     private final DistroComponentHolder distroComponentHolder;
-    
+
+    // Distro任务引擎持有者
     private final DistroTaskEngineHolder distroTaskEngineHolder;
-    
+
     private volatile boolean isInitialized = false;
-    
+
     public DistroProtocol(ServerMemberManager memberManager, DistroComponentHolder distroComponentHolder,
             DistroTaskEngineHolder distroTaskEngineHolder) {
         this.memberManager = memberManager;
         this.distroComponentHolder = distroComponentHolder;
         this.distroTaskEngineHolder = distroTaskEngineHolder;
+        // 启动Distro协议
         startDistroTask();
     }
-    
+
     private void startDistroTask() {
+        // 单机模式不进行数据同步操作
         if (EnvUtil.getStandaloneMode()) {
             isInitialized = true;
             return;
         }
+        // 开启节点数据验证
         startVerifyTask();
+        // 启动数据同步任务
         startLoadTask();
     }
-    
+
+    /**
+     * 从其他节点获取数据到当前节点
+     */
     private void startLoadTask() {
         DistroCallback loadCallback = new DistroCallback() {
             @Override
             public void onSuccess() {
                 isInitialized = true;
             }
-            
+
             @Override
             public void onFailed(Throwable throwable) {
                 isInitialized = false;
             }
         };
+        // 提交数据加载任务
         GlobalExecutor.submitLoadDataTask(
                 new DistroLoadDataTask(memberManager, distroComponentHolder, DistroConfig.getInstance(), loadCallback));
     }
-    
+
+    // 启动数据报告的定时任务
     private void startVerifyTask() {
         GlobalExecutor.schedulePartitionDataTimedSync(new DistroVerifyTimedTask(memberManager, distroComponentHolder,
                         distroTaskEngineHolder.getExecuteWorkersManager()),
                 DistroConfig.getInstance().getVerifyIntervalMillis());
     }
-    
+
     public boolean isInitialized() {
         return isInitialized;
     }
-    
+
     /**
      * Start to sync by configured delay.
+     * 按配置的延迟开始同步
      *
      * @param distroKey distro key of sync data
      * @param action    the action of data operation
@@ -103,7 +116,7 @@ public class DistroProtocol {
     public void sync(DistroKey distroKey, DataOperation action) {
         sync(distroKey, action, DistroConfig.getInstance().getSyncDelayMillis());
     }
-    
+
     /**
      * Start to sync data to all remote server.
      * 开始同步数据到所有远程服务器
@@ -117,7 +130,7 @@ public class DistroProtocol {
             syncToTarget(distroKey, action, each.getAddress(), delay);
         }
     }
-    
+
     /**
      * Start to sync to target server.
      * 开始同步到目标服务器
@@ -136,9 +149,10 @@ public class DistroProtocol {
             Loggers.DISTRO.debug("[DISTRO-SCHEDULE] {} to {}", distroKey, targetServer);
         }
     }
-    
+
     /**
      * Query data from specified server.
+     * 从指定节点查询数据
      *
      * @param distroKey data key
      * @return data
@@ -156,9 +170,10 @@ public class DistroProtocol {
         }
         return transportAgent.getData(distroKey, distroKey.getTargetServer());
     }
-    
+
     /**
      * Receive synced distro data, find processor to process.
+     * 接收到同步数据，并查找处理器进行处理
      *
      * @param distroData Received data
      * @return true if handle receive data successfully, otherwise false
@@ -174,9 +189,10 @@ public class DistroProtocol {
         }
         return dataProcessor.processData(distroData);
     }
-    
+
     /**
      * Receive verify data, find processor to process.
+     * 接收到验证数据，并查找处理器进行处理
      *
      * @param distroData    verify data
      * @param sourceAddress source server address, might be get data from source server
@@ -195,9 +211,10 @@ public class DistroProtocol {
         }
         return dataProcessor.processVerifyData(distroData, sourceAddress);
     }
-    
+
     /**
      * Query data of input distro key.
+     * 根据条件查询数据
      *
      * @param distroKey key of data
      * @return data
@@ -211,9 +228,10 @@ public class DistroProtocol {
         }
         return distroDataStorage.getDistroData(distroKey);
     }
-    
+
     /**
      * Query all datum snapshot.
+     * 查询所有快照数据
      *
      * @param type datum type
      * @return all datum snapshot

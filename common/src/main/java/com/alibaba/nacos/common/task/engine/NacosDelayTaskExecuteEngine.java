@@ -32,41 +32,42 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Nacos delay task execute engine.
+ * Nacos延迟任务执行引擎
  *
  * @author xiweng.yy
  */
 public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<AbstractDelayTask> {
-    
+
     private final ScheduledExecutorService processingExecutor;
-    
+
     protected final ConcurrentHashMap<Object, AbstractDelayTask> tasks;
-    
+
     protected final ReentrantLock lock = new ReentrantLock();
-    
+
     public NacosDelayTaskExecuteEngine(String name) {
         this(name, null);
     }
-    
+
     public NacosDelayTaskExecuteEngine(String name, Logger logger) {
         this(name, 32, logger, 100L);
     }
-    
+
     public NacosDelayTaskExecuteEngine(String name, Logger logger, long processInterval) {
         this(name, 32, logger, processInterval);
     }
-    
+
     public NacosDelayTaskExecuteEngine(String name, int initCapacity, Logger logger) {
         this(name, initCapacity, logger, 100L);
     }
-    
+
     public NacosDelayTaskExecuteEngine(String name, int initCapacity, Logger logger, long processInterval) {
         super(logger);
         tasks = new ConcurrentHashMap<>(initCapacity);
         processingExecutor = ExecutorFactory.newSingleScheduledExecutorService(new NameThreadFactory(name));
-        processingExecutor
-                .scheduleWithFixedDelay(new ProcessRunnable(), processInterval, processInterval, TimeUnit.MILLISECONDS);
+        // 如果是子类自动调用的该构造方法，则ProcessRunnable=>processTasks会调用子类的方法
+        processingExecutor.scheduleWithFixedDelay(new ProcessRunnable(), processInterval, processInterval, TimeUnit.MILLISECONDS);
     }
-    
+
     @Override
     public int size() {
         lock.lock();
@@ -76,7 +77,7 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
             lock.unlock();
         }
     }
-    
+
     @Override
     public boolean isEmpty() {
         lock.lock();
@@ -86,12 +87,13 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
             lock.unlock();
         }
     }
-    
+
     @Override
     public AbstractDelayTask removeTask(Object key) {
         lock.lock();
         try {
             AbstractDelayTask task = tasks.get(key);
+            // 如果任务不存在或者没有可以执行，则跳过
             if (null != task && task.shouldProcess()) {
                 return tasks.remove(key);
             } else {
@@ -101,7 +103,7 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
             lock.unlock();
         }
     }
-    
+
     @Override
     public Collection<Object> getAllTaskKeys() {
         Collection<Object> keys = new HashSet<Object>();
@@ -113,19 +115,20 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
         }
         return keys;
     }
-    
+
     @Override
     public void shutdown() throws NacosException {
         tasks.clear();
         processingExecutor.shutdown();
     }
-    
+
     @Override
     public void addTask(Object key, AbstractDelayTask newTask) {
         lock.lock();
         try {
             AbstractDelayTask existTask = tasks.get(key);
             if (null != existTask) {
+                // 如果已经存在该任务则合并
                 newTask.merge(existTask);
             }
             tasks.put(key, newTask);
@@ -133,9 +136,10 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
             lock.unlock();
         }
     }
-    
+
     /**
      * process tasks in execute engine.
+     * 执行引擎中的进程任务
      */
     protected void processTasks() {
         Collection<Object> keys = getAllTaskKeys();
@@ -151,6 +155,7 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
             }
             try {
                 // ReAdd task if process failed
+                // 如果执行失败，则重新添加任务
                 if (!processor.process(task)) {
                     retryFailedTask(taskKey, task);
                 }
@@ -160,14 +165,14 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
             }
         }
     }
-    
+
     private void retryFailedTask(Object key, AbstractDelayTask task) {
         task.setLastProcessTime(System.currentTimeMillis());
         addTask(key, task);
     }
-    
+
     private class ProcessRunnable implements Runnable {
-        
+
         @Override
         public void run() {
             try {

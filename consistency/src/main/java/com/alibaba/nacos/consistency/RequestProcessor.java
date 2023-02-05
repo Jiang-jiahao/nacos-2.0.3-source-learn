@@ -24,11 +24,12 @@ import com.alibaba.nacos.consistency.entity.WriteRequest;
  * Can be discovered through SPI or Spring, This interface is just a function definition interface. Different
  * consistency protocols have their own LogDispatcher. It is not recommended to directly implement this interface.
  *
+ * 可以通过SPI或Spring发现，这个接口只是一个函数定义接口。不同的一致性协议有自己的LogDispatcher。不建议直接实现此接口
  * @author <a href="mailto:liaochuntao@live.com">liaochuntao</a>
  */
 @SuppressWarnings("PMD.AbstractClassShouldStartWithAbstractNamingRule")
 public abstract class RequestProcessor {
-    
+
     /**
      * get data by key.
      *
@@ -36,7 +37,7 @@ public abstract class RequestProcessor {
      * @return target type data
      */
     public abstract Response onRequest(ReadRequest request);
-    
+
     /**
      * Process Submitted Log.
      *
@@ -44,7 +45,7 @@ public abstract class RequestProcessor {
      * @return {@link boolean}
      */
     public abstract Response onApply(WriteRequest log);
-    
+
     /**
      * Irremediable errors that need to trigger business price cuts.
      *
@@ -52,7 +53,7 @@ public abstract class RequestProcessor {
      */
     public void onError(Throwable error) {
     }
-    
+
     /**
      * In order for the state machine that handles the transaction to be able to route the Log to the correct
      * LogProcessor, the LogProcessor needs to have an identity information.
@@ -60,5 +61,5 @@ public abstract class RequestProcessor {
      * @return Business unique identification name
      */
     public abstract String group();
-    
+
 }

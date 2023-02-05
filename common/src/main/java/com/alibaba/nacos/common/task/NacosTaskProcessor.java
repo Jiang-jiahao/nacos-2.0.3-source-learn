@@ -18,13 +18,15 @@ package com.alibaba.nacos.common.task;
 
 /**
  * Task processor.
+ * 任务处理器
  *
  * @author Nacos
  */
 public interface NacosTaskProcessor {
-    
+
     /**
      * Process task.
+     * 处理任务
      *
      * @param task     task.
      * @return process task result.

@@ -35,35 +35,36 @@ import java.util.function.Consumer;
 /**
  * An automated task that determines whether all nodes in the current cluster meet the requirements of a particular
  * version.
- *
+ * 用于确定当前集群中的所有节点是否满足特定版本的要求
  * <p>This will be removed in a future release, just to smooth the transition.
  *
  * @author <a href="mailto:liaochuntao@live.com">liaochuntao</a>
  */
 @Component
 public class ClusterVersionJudgement {
-    
+
     private volatile boolean allMemberIsNewVersion = false;
-    
+
     private final ServerMemberManager memberManager;
-    
+
     private final List<ConsumerWithPriority> observers = new CopyOnWriteArrayList<>();
-    
+
     public ClusterVersionJudgement(ServerMemberManager memberManager) {
         this.memberManager = memberManager;
         GlobalExecutor.submitClusterVersionJudge(this::runVersionListener, TimeUnit.SECONDS.toMillis(5));
     }
-    
+
     /**
      * register member version watcher.
+     * 注册成员版本观察程序
      *
-     * @param observer Listens for the latest version of all current nodes
-     * @param priority The higher the priority, the first to be notified
+     * @param observer Listens for the latest version of all current nodes 侦听所有当前节点的最新版本
+     * @param priority The higher the priority, the first to be notified 优先级越高，最先收到通知
      */
     public void registerObserver(Consumer<Boolean> observer, int priority) {
         observers.add(new ConsumerWithPriority(observer, priority));
     }
-    
+
     protected void runVersionListener() {
         // Single machine mode, do upgrade operation directly.
         if (EnvUtil.getStandaloneMode()) {
@@ -76,9 +77,9 @@ public class ClusterVersionJudgement {
             GlobalExecutor.submitClusterVersionJudge(this::runVersionListener, TimeUnit.SECONDS.toMillis(5));
         }
     }
-    
+
     protected void judge() {
-        
+
         Collection<Member> members = memberManager.allMembers();
         final String oldVersion = "1.4.0";
         boolean allMemberIsNewVersion = true;
@@ -93,7 +94,7 @@ public class ClusterVersionJudgement {
             notifyAllListener();
         }
     }
-    
+
     private void notifyAllListener() {
         this.allMemberIsNewVersion = true;
         Collections.sort(observers);
@@ -101,29 +102,29 @@ public class ClusterVersionJudgement {
             consumer.consumer.accept(true);
         }
     }
-    
+
     public boolean allMemberIsNewVersion() {
         return allMemberIsNewVersion;
     }
-    
+
     /**
      * Only used for upgrade to 2.0.0
      */
     public void reset() {
         allMemberIsNewVersion = false;
     }
-    
+
     private static class ConsumerWithPriority implements Comparable<ConsumerWithPriority> {
-        
+
         private final Consumer<Boolean> consumer;
-        
+
         private final int priority;
-        
+
         public ConsumerWithPriority(Consumer<Boolean> consumer, int priority) {
             this.consumer = consumer;
             this.priority = priority;
         }
-        
+
         @Override
         public int compareTo(ConsumerWithPriority o) {
             return o.priority - this.priority;

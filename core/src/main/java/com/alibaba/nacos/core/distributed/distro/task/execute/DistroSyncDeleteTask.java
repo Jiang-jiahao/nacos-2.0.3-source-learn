@@ -24,22 +24,23 @@ import com.alibaba.nacos.core.distributed.distro.entity.DistroKey;
 
 /**
  * Distro sync delete task.
+ * Distro同步删除任务（是将本机删除的服务发送到其他节点）
  *
  * @author xiweng.yy
  */
 public class DistroSyncDeleteTask extends AbstractDistroExecuteTask {
-    
+
     private static final DataOperation OPERATION = DataOperation.DELETE;
-    
+
     public DistroSyncDeleteTask(DistroKey distroKey, DistroComponentHolder distroComponentHolder) {
         super(distroKey, distroComponentHolder);
     }
-    
+
     @Override
     protected DataOperation getDataOperation() {
         return OPERATION;
     }
-    
+
     @Override
     protected boolean doExecute() {
         String type = getDistroKey().getResourceType();
@@ -49,7 +50,7 @@ public class DistroSyncDeleteTask extends AbstractDistroExecuteTask {
         return getDistroComponentHolder().findTransportAgent(type)
                 .syncData(distroData, getDistroKey().getTargetServer());
     }
-    
+
     @Override
     protected void doExecuteWithCallback(DistroCallback callback) {
         String type = getDistroKey().getResourceType();
@@ -59,7 +60,7 @@ public class DistroSyncDeleteTask extends AbstractDistroExecuteTask {
         getDistroComponentHolder().findTransportAgent(type)
                 .syncData(distroData, getDistroKey().getTargetServer(), callback);
     }
-    
+
     @Override
     public String toString() {
         return "DistroSyncDeleteTask for " + getDistroKey().toString();

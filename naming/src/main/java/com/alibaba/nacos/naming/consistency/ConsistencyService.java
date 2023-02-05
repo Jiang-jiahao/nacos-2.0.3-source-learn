@@ -23,6 +23,7 @@ import java.util.Optional;
 
 /**
  * Consistence service for all implementations to derive.
+ * 要派生的所有实现的一致性服务
  *
  * <p>We announce this consistency service to decouple the specific consistency implementation with business logic.
  * User should not be aware of what consistency protocol is being used.
@@ -34,7 +35,7 @@ import java.util.Optional;
  * @since 1.0.0
  */
 public interface ConsistencyService {
-    
+
     /**
      * Put a data related to a key to Nacos cluster.
      *
@@ -43,7 +44,7 @@ public interface ConsistencyService {
      * @throws NacosException nacos exception
      */
     void put(String key, Record value) throws NacosException;
-    
+
     /**
      * Remove a data from Nacos cluster.
      *
@@ -51,7 +52,7 @@ public interface ConsistencyService {
      * @throws NacosException nacos exception
      */
     void remove(String key) throws NacosException;
-    
+
     /**
      * Get a data from Nacos cluster.
      *
@@ -60,7 +61,7 @@ public interface ConsistencyService {
      * @throws NacosException nacos exception
      */
     Datum get(String key) throws NacosException;
-    
+
     /**
      * Listen for changes of a data.
      *
@@ -69,7 +70,7 @@ public interface ConsistencyService {
      * @throws NacosException nacos exception
      */
     void listen(String key, RecordListener listener) throws NacosException;
-    
+
     /**
      * Cancel listening of a data.
      *
@@ -78,14 +79,14 @@ public interface ConsistencyService {
      * @throws NacosException nacos exception
      */
     void unListen(String key, RecordListener listener) throws NacosException;
-    
+
     /**
      * Get the error message of the consistency protocol.
      *
      * @return the consistency protocol error message.
      */
     Optional<String> getErrorMsg();
-    
+
     /**
      * Tell the status of this consistency service.
      *

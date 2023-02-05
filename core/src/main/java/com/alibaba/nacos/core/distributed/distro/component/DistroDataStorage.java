@@ -23,42 +23,48 @@ import java.util.List;
 
 /**
  * Distro data storage.
+ * Distro数据存储器
  *
  * @author xiweng.yy
  */
 public interface DistroDataStorage {
-    
+
     /**
      * Set this distro data storage has finished initial step.
+     * 设置当前存储器已经初始化完毕它内部的DistroData
      */
     void finishInitial();
-    
+
     /**
      * Whether this distro data is finished initial.
+     * 当前存储器是否已经初始化完毕内部的DistroData
      *
      * <p>If not finished, this data storage should not send verify data to other node.
      *
      * @return {@code true} if finished, otherwise false
      */
     boolean isFinishInitial();
-    
+
     /**
      * Get distro datum.
+     * 获取内部的DistroData
      *
      * @param distroKey key of distro datum
      * @return need to sync datum
      */
     DistroData getDistroData(DistroKey distroKey);
-    
+
     /**
      * Get all distro datum snapshot.
+     * 获取内部存储的所有DistroData
      *
      * @return all datum
      */
     DistroData getDatumSnapshot();
-    
+
     /**
      * Get verify datum.
+     * 获取所有的DistroData用于验证
      *
      * @return verify datum
      */

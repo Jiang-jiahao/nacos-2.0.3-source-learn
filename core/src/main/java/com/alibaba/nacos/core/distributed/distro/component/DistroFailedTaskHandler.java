@@ -21,13 +21,15 @@ import com.alibaba.nacos.core.distributed.distro.entity.DistroKey;
 
 /**
  * Distro failed task handler.
+ * Distro失败任务处理器
  *
  * @author xiweng.yy
  */
 public interface DistroFailedTaskHandler {
-    
+
     /**
      * Build retry task when distro task execute failed.
+     * 当Distro任务执行失败可以构建重试任务
      *
      * @param distroKey distro key of failed task
      * @param action action of task

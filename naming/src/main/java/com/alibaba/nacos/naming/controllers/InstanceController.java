@@ -75,26 +75,27 @@ import static com.alibaba.nacos.naming.misc.UtilsAndCommons.DEFAULT_CLUSTER_NAME
 @RestController
 @RequestMapping(UtilsAndCommons.NACOS_NAMING_CONTEXT + UtilsAndCommons.NACOS_NAMING_INSTANCE_CONTEXT)
 public class InstanceController {
-    
+
     @Autowired
     private SwitchDomain switchDomain;
-    
+
     @Autowired
     private InstanceOperatorClientImpl instanceServiceV2;
-    
+
     @Autowired
     private InstanceOperatorServiceImpl instanceServiceV1;
-    
+
     @Autowired
     private UpgradeJudgement upgradeJudgement;
-    
+
     public InstanceController() {
         Collection<InstanceExtensionHandler> handlers = NacosServiceLoader.load(InstanceExtensionHandler.class);
         Loggers.SRV_LOG.info("Load instance extension handler {}", handlers);
     }
-    
+
     /**
      * Register new instance.
+     * 注册一个新的实例
      *
      * @param request http request
      * @return 'ok' if success
@@ -108,8 +109,9 @@ public class InstanceController {
         final String namespaceId = WebUtils
                 .optional(request, CommonParams.NAMESPACE_ID, Constants.DEFAULT_NAMESPACE_ID);
         final String serviceName = WebUtils.required(request, CommonParams.SERVICE_NAME);
+        // 检查服务名称格式
         NamingUtils.checkServiceNameFormat(serviceName);
-        
+
         final Instance instance = HttpRequestInstanceBuilder.newBuilder()
                 // 设置request，将数据存储在InstanceBuilder，之后build到Instance
                 .setDefaultInstanceEphemeral(switchDomain.isDefaultInstanceEphemeral()).setRequest(request).build();
@@ -117,9 +119,10 @@ public class InstanceController {
         getInstanceOperator().registerInstance(namespaceId, serviceName, instance);
         return "ok";
     }
-    
+
     /**
      * Deregister instances.
+     * 注销实例
      *
      * @param request http request
      * @return 'ok' if success
@@ -133,14 +136,16 @@ public class InstanceController {
                 .setDefaultInstanceEphemeral(switchDomain.isDefaultInstanceEphemeral()).setRequest(request).build();
         String namespaceId = WebUtils.optional(request, CommonParams.NAMESPACE_ID, Constants.DEFAULT_NAMESPACE_ID);
         String serviceName = WebUtils.required(request, CommonParams.SERVICE_NAME);
+        // 检查服务名称格式
         NamingUtils.checkServiceNameFormat(serviceName);
-        
+
         getInstanceOperator().removeInstance(namespaceId, serviceName, instance);
         return "ok";
     }
-    
+
     /**
      * Update instance.
+     * 更新实例
      *
      * @param request http request
      * @return 'ok' if success
@@ -158,7 +163,7 @@ public class InstanceController {
         getInstanceOperator().updateInstance(namespaceId, serviceName, instance);
         return "ok";
     }
-    
+
     /**
      * Batch update instance's metadata. old key exist = update, old key not exist = add.
      *
@@ -180,7 +185,7 @@ public class InstanceController {
         String metadata = WebUtils.required(request, "metadata");
         Map<String, String> targetMetadata = UtilsAndCommons.parseMetadata(metadata);
         InstanceOperationInfo instanceOperationInfo = buildOperationInfo(serviceName, consistencyType, targetInstances);
-        
+
         List<String> operatedInstances = getInstanceOperator()
                 .batchUpdateMetadata(namespaceId, instanceOperationInfo, targetMetadata);
         ObjectNode result = JacksonUtils.createEmptyJsonNode();
@@ -191,7 +196,7 @@ public class InstanceController {
         result.replace("updated", ipArray);
         return result;
     }
-    
+
     /**
      * Batch delete instance's metadata. old key exist = delete, old key not exist = not operate
      *
@@ -215,7 +220,7 @@ public class InstanceController {
         InstanceOperationInfo instanceOperationInfo = buildOperationInfo(serviceName, consistencyType, targetInstances);
         List<String> operatedInstances = getInstanceOperator()
                 .batchDeleteMetadata(namespaceId, instanceOperationInfo, targetMetadata);
-        
+
         ObjectNode result = JacksonUtils.createEmptyJsonNode();
         ArrayNode ipArray = JacksonUtils.createEmptyArrayNode();
         for (String ip : operatedInstances) {
@@ -224,7 +229,7 @@ public class InstanceController {
         result.replace("updated", ipArray);
         return result;
     }
-    
+
     private InstanceOperationInfo buildOperationInfo(String serviceName, String consistencyType,
             List<Instance> instances) {
         if (!CollectionUtils.isEmpty(instances)) {
@@ -236,7 +241,7 @@ public class InstanceController {
         }
         return new InstanceOperationInfo(serviceName, consistencyType, instances);
     }
-    
+
     private List<Instance> parseBatchInstances(String instances) {
         try {
             return JacksonUtils.toObj(instances, new TypeReference<List<Instance>>() {
@@ -246,10 +251,11 @@ public class InstanceController {
         }
         return Collections.emptyList();
     }
-    
-    
+
+
     /**
      * Patch instance.
+     * 修补实例
      *
      * @param request http request
      * @return 'ok' if success
@@ -267,6 +273,7 @@ public class InstanceController {
         if (StringUtils.isBlank(cluster)) {
             cluster = WebUtils.optional(request, "cluster", UtilsAndCommons.DEFAULT_CLUSTER_NAME);
         }
+        // 创建实例修补对象
         InstancePatchObject patchObject = new InstancePatchObject(cluster, ip, Integer.parseInt(port));
         String metadata = WebUtils.optional(request, "metadata", StringUtils.EMPTY);
         if (StringUtils.isNotBlank(metadata)) {
@@ -292,9 +299,10 @@ public class InstanceController {
         getInstanceOperator().patchInstance(namespaceId, serviceName, patchObject);
         return "ok";
     }
-    
+
     /**
      * Get all instance of input service.
+     * 根据对应的服务，获取所有的实例
      *
      * @param request http request
      * @return list of instance
@@ -303,30 +311,31 @@ public class InstanceController {
     @GetMapping("/list")
     @Secured(parser = NamingResourceParser.class, action = ActionTypes.READ)
     public Object list(HttpServletRequest request) throws Exception {
-        
+
         String namespaceId = WebUtils.optional(request, CommonParams.NAMESPACE_ID, Constants.DEFAULT_NAMESPACE_ID);
         String serviceName = WebUtils.required(request, CommonParams.SERVICE_NAME);
         NamingUtils.checkServiceNameFormat(serviceName);
-        
+
         String agent = WebUtils.getUserAgent(request);
         String clusters = WebUtils.optional(request, "clusters", StringUtils.EMPTY);
         String clientIP = WebUtils.optional(request, "clientIP", StringUtils.EMPTY);
         int udpPort = Integer.parseInt(WebUtils.optional(request, "udpPort", "0"));
         boolean healthyOnly = Boolean.parseBoolean(WebUtils.optional(request, "healthyOnly", "false"));
-        
+
         boolean isCheck = Boolean.parseBoolean(WebUtils.optional(request, "isCheck", "false"));
-        
+
         String app = WebUtils.optional(request, "app", StringUtils.EMPTY);
         String env = WebUtils.optional(request, "env", StringUtils.EMPTY);
         String tenant = WebUtils.optional(request, "tid", StringUtils.EMPTY);
-        
+
         Subscriber subscriber = new Subscriber(clientIP + ":" + udpPort, agent, app, clientIP, namespaceId, serviceName,
                 udpPort, clusters);
         return getInstanceOperator().listInstance(namespaceId, serviceName, subscriber, clusters, healthyOnly);
     }
-    
+
     /**
      * Get detail information of specified instance.
+     * 获取实例的详细信息
      *
      * @param request http request
      * @return detail information of instance
@@ -335,14 +344,14 @@ public class InstanceController {
     @GetMapping
     @Secured(parser = NamingResourceParser.class, action = ActionTypes.READ)
     public ObjectNode detail(HttpServletRequest request) throws Exception {
-        
+
         String namespaceId = WebUtils.optional(request, CommonParams.NAMESPACE_ID, Constants.DEFAULT_NAMESPACE_ID);
         String serviceName = WebUtils.required(request, CommonParams.SERVICE_NAME);
         NamingUtils.checkServiceNameFormat(serviceName);
         String cluster = WebUtils.optional(request, CommonParams.CLUSTER_NAME, UtilsAndCommons.DEFAULT_CLUSTER_NAME);
         String ip = WebUtils.required(request, "ip");
         int port = Integer.parseInt(WebUtils.required(request, "port"));
-        
+
         com.alibaba.nacos.api.naming.pojo.Instance instance = getInstanceOperator()
                 .getInstance(namespaceId, serviceName, cluster, ip, port);
         ObjectNode result = JacksonUtils.createEmptyJsonNode();
@@ -356,7 +365,7 @@ public class InstanceController {
         result.set("metadata", JacksonUtils.transferToJsonNode(instance.getMetadata()));
         return result;
     }
-    
+
     /**
      * Create a beat for instance.
      * 接受客户端发送的心跳请求
@@ -369,10 +378,10 @@ public class InstanceController {
     @PutMapping("/beat")
     @Secured(parser = NamingResourceParser.class, action = ActionTypes.WRITE)
     public ObjectNode beat(HttpServletRequest request) throws Exception {
-        
+
         ObjectNode result = JacksonUtils.createEmptyJsonNode();
         result.put(SwitchEntry.CLIENT_BEAT_INTERVAL, switchDomain.getClientBeatInterval());
-        
+
         String beat = WebUtils.optional(request, "beat", StringUtils.EMPTY);
         RsInfo clientBeat = null;
         if (StringUtils.isNotBlank(beat)) {
@@ -407,7 +416,7 @@ public class InstanceController {
         result.put(SwitchEntry.LIGHT_BEAT_ENABLED, switchDomain.isLightBeatEnabled());
         return result;
     }
-    
+
     /**
      * List all instance with health status.
      *
@@ -417,10 +426,10 @@ public class InstanceController {
      */
     @RequestMapping("/statuses")
     public ObjectNode listWithHealthStatus(@RequestParam String key) throws NacosException {
-        
+
         String serviceName;
         String namespaceId;
-        
+
         if (key.contains(UtilsAndCommons.NAMESPACE_SERVICE_CONNECTOR)) {
             namespaceId = key.split(UtilsAndCommons.NAMESPACE_SERVICE_CONNECTOR)[0];
             serviceName = key.split(UtilsAndCommons.NAMESPACE_SERVICE_CONNECTOR)[1];
@@ -429,10 +438,10 @@ public class InstanceController {
             serviceName = key;
         }
         NamingUtils.checkServiceNameFormat(serviceName);
-        
+
         List<? extends com.alibaba.nacos.api.naming.pojo.Instance> ips = getInstanceOperator()
                 .listAllInstances(namespaceId, serviceName);
-        
+
         ObjectNode result = JacksonUtils.createEmptyJsonNode();
         ArrayNode ipArray = JacksonUtils.createEmptyArrayNode();
         for (com.alibaba.nacos.api.naming.pojo.Instance ip : ips) {
@@ -441,7 +450,7 @@ public class InstanceController {
         result.replace("ips", ipArray);
         return result;
     }
-    
+
     private InstanceOperator getInstanceOperator() {
         return upgradeJudgement.isUseGrpcFeatures() ? instanceServiceV2 : instanceServiceV1;
     }

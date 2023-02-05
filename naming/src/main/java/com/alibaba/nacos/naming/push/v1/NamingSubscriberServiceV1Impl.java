@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Naming subscriber service for v1.x.
+ * naming服务端订阅者
  *
  * @author xiweng.yy
  * @deprecated Will be removed in v2.1.x version
@@ -43,10 +44,13 @@ import java.util.concurrent.TimeUnit;
 @org.springframework.stereotype.Service
 @Deprecated
 public class NamingSubscriberServiceV1Impl implements NamingSubscriberService {
-    
+
+    // 存放对应服务的推送客户端，第一层key是serviceName，
+    // 第二层key是"serviceName：, clusters: , address: , agent:"
     private final ConcurrentMap<String, ConcurrentMap<String, PushClient>> clientMap = new ConcurrentHashMap<>();
-    
+
     public NamingSubscriberServiceV1Impl() {
+        // 开启定时任务，检查推送客户端是否是僵尸状态，如果是则清除
         GlobalExecutor.scheduleRetransmitter(() -> {
             try {
                 removeClientIfZombie();
@@ -55,7 +59,7 @@ public class NamingSubscriberServiceV1Impl implements NamingSubscriberService {
             }
         }, 0, 20, TimeUnit.SECONDS);
     }
-    
+
     private void removeClientIfZombie() {
         int size = 0;
         for (Map.Entry<String, ConcurrentMap<String, PushClient>> entry : clientMap.entrySet()) {
@@ -72,11 +76,11 @@ public class NamingSubscriberServiceV1Impl implements NamingSubscriberService {
             Loggers.PUSH.debug("[NACOS-PUSH] clientMap size: {}", size);
         }
     }
-    
+
     public ConcurrentMap<String, ConcurrentMap<String, PushClient>> getClientMap() {
         return clientMap;
     }
-    
+
     @Override
     public Collection<Subscriber> getSubscribers(String namespaceId, String serviceName) {
         String serviceKey = UtilsAndCommons.assembleFullServiceName(namespaceId, serviceName);
@@ -90,12 +94,12 @@ public class NamingSubscriberServiceV1Impl implements NamingSubscriberService {
                         namespaceId, serviceName, client.getPort())));
         return result;
     }
-    
+
     @Override
     public Collection<Subscriber> getSubscribers(Service service) {
         return getSubscribers(service.getNamespace(), service.getGroupedServiceName());
     }
-    
+
     @Override
     public Collection<Subscriber> getFuzzySubscribers(String namespaceId, String serviceName) {
         Collection<Subscriber> result = new ArrayList<>();
@@ -117,12 +121,12 @@ public class NamingSubscriberServiceV1Impl implements NamingSubscriberService {
         });
         return result;
     }
-    
+
     @Override
     public Collection<Subscriber> getFuzzySubscribers(Service service) {
         return getFuzzySubscribers(service.getNamespace(), service.getGroupedServiceName());
     }
-    
+
     /**
      * Add push target client.
      *
@@ -137,31 +141,35 @@ public class NamingSubscriberServiceV1Impl implements NamingSubscriberService {
      */
     public void addClient(String namespaceId, String serviceName, String clusters, String agent,
             InetSocketAddress socketAddr, DataSource dataSource, String tenant, String app) {
-        
+        // 创建推送客户端
         PushClient client = new PushClient(namespaceId, serviceName, clusters, agent, socketAddr, dataSource, tenant,
                 app);
         addClient(client);
     }
-    
+
     /**
      * Add push target client.
+     * 添加目标推送客户端
      *
      * @param client push target client
      */
     public void addClient(PushClient client) {
         // client is stored by key 'serviceName' because notify event is driven by serviceName change
+        // 客户端key为“serviceName”，因为通知事件由serviceName更改驱动
         String serviceKey = UtilsAndCommons.assembleFullServiceName(client.getNamespaceId(), client.getServiceName());
         ConcurrentMap<String, PushClient> clients = clientMap.get(serviceKey);
+        // 判断是否存在，如果不存在则添加
         if (clients == null) {
             clientMap.putIfAbsent(serviceKey, new ConcurrentHashMap<>(1024));
             clients = clientMap.get(serviceKey);
         }
-        
+        // 获取旧的PushClient，如果存在则刷新，不存在则添加
         PushClient oldClient = clients.get(client.toString());
         if (oldClient != null) {
             oldClient.refresh();
         } else {
             PushClient res = clients.putIfAbsent(client.toString(), client);
+            // 存在线程安全问题，发出警告
             if (res != null) {
                 Loggers.PUSH.warn("client: {} already associated with key {}", res.getAddrStr(), res);
             }

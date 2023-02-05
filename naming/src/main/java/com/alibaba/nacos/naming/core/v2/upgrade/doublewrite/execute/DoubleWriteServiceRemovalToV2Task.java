@@ -37,7 +37,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Double write task for removal of service from v1 to v2.
- * 
+ * 将服务从v1移到v2的双重写入任务。
+ *
  * @author gengtuo.ygt
  * on 2021/5/13
  */
