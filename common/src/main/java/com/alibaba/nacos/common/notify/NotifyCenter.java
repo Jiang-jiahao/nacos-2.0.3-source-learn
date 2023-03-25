@@ -72,27 +72,27 @@ public class NotifyCenter {
     static {
         // Internal ArrayBlockingQueue buffer size. For applications with high write throughput,
         // this value needs to be increased appropriately. default value is 16384
-        // 设置ringBufferSize的大小，如果系统环境变量没有配置则默认16384
+        // 设置ringBufferSize的大小，如果系统环境变量没有配置则默认16384（默认发布器处理事件的阻塞队列最大长度）
         String ringBufferSizeProperty = "nacos.core.notify.ring-buffer-size";
         ringBufferSize = Integer.getInteger(ringBufferSizeProperty, 16384);
 
         // The size of the public publisher's message staging queue buffer
-        // 设置shareBufferSize的大小，如果系统环境变量没有配置则默认1024
+        // 设置shareBufferSize的大小，如果系统环境变量没有配置则默认1024（共享发布器处理事件的阻塞队列最大长度）
         String shareBufferSizeProperty = "nacos.core.notify.share-buffer-size";
         shareBufferSize = Integer.getInteger(shareBufferSizeProperty, 1024);
         // 加载SPI
         final Collection<EventPublisher> publishers = NacosServiceLoader.load(EventPublisher.class);
         Iterator<EventPublisher> iterator = publishers.iterator();
-        // 如果没有事件发布器，则使用默认的时间发布器
+        // 如果没有事件发布器，则使用默认的事假发布器
         if (iterator.hasNext()) {
             clazz = iterator.next().getClass();
         } else {
             clazz = DefaultPublisher.class;
         }
-
+        // 定义lambda表达式，主要用于生产发布器
         DEFAULT_PUBLISHER_FACTORY = (cls, buffer) -> {
             try {
-                // 生成默认的时间发布器，并初始化
+                // 一般生成默认的时间发布器，并初始化
                 EventPublisher publisher = clazz.newInstance();
                 publisher.init(cls, buffer);
                 return publisher;
@@ -113,6 +113,7 @@ public class NotifyCenter {
             LOGGER.error("Service class newInstance has error : ", ex);
         }
 
+        // 添加线程销毁前的钩子方法
         ThreadUtils.addShutdownHook(NotifyCenter::shutdown);
     }
 

@@ -87,6 +87,7 @@ public class ServiceStorage {
             return result;
         }
         result.setHosts(getAllInstancesFromIndex(service));
+        // 缓存这个服务的信息
         serviceDataIndexes.put(service, result);
         return result;
     }
@@ -121,6 +122,7 @@ public class ServiceStorage {
             }
         }
         // cache clusters of this service
+        // 缓存这个服务的集群
         serviceClusterIndex.put(service, clusters);
         return new LinkedList<>(result);
     }

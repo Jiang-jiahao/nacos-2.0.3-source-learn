@@ -65,18 +65,18 @@ public abstract class RpcClient implements Closeable {
 
     private ServerListFactory serverListFactory;
 
-    protected LinkedBlockingQueue<ConnectionEvent> eventLinkedBlockingQueue = new LinkedBlockingQueue<ConnectionEvent>();
+    protected LinkedBlockingQueue<ConnectionEvent> eventLinkedBlockingQueue = new LinkedBlockingQueue<>();
 
-    protected volatile AtomicReference<RpcClientStatus> rpcClientStatus = new AtomicReference<RpcClientStatus>(
+    protected volatile AtomicReference<RpcClientStatus> rpcClientStatus = new AtomicReference<>(
             RpcClientStatus.WAIT_INIT);
 
     protected ScheduledExecutorService clientEventExecutor;
 
-    private final BlockingQueue<ReconnectContext> reconnectionSignal = new ArrayBlockingQueue<ReconnectContext>(1);
+    private final BlockingQueue<ReconnectContext> reconnectionSignal = new ArrayBlockingQueue<>(1);
 
     protected volatile Connection currentConnection;
 
-    protected Map<String, String> labels = new HashMap<String, String>();
+    protected Map<String, String> labels = new HashMap<>();
 
     private String name;
 
@@ -100,13 +100,13 @@ public abstract class RpcClient implements Closeable {
      * listener called where connection's status changed.
      * 在连接状态改变的地方调用监听器
      */
-    protected List<ConnectionEventListener> connectionEventListeners = new ArrayList<ConnectionEventListener>();
+    protected List<ConnectionEventListener> connectionEventListeners = new ArrayList<>();
 
     /**
      * handlers to process server push request.
      * 处理服务器推送请求的处理程序
      */
-    protected List<ServerRequestHandler> serverRequestHandlers = new ArrayList<ServerRequestHandler>();
+    protected List<ServerRequestHandler> serverRequestHandlers = new ArrayList<>();
 
     static {
         PayloadRegistry.init();
@@ -279,7 +279,7 @@ public abstract class RpcClient implements Closeable {
         if (!success) {
             return;
         }
-
+        // 创建线程池
         clientEventExecutor = new ScheduledThreadPoolExecutor(2, new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -291,6 +291,7 @@ public abstract class RpcClient implements Closeable {
         });
 
         // connection event consumer.
+        // 开启一个线程，监听连接事件和断开连接事件
         clientEventExecutor.submit(new Runnable() {
             @Override
             public void run() {
@@ -313,6 +314,7 @@ public abstract class RpcClient implements Closeable {
             }
         });
 
+        // 开启一个线程，用于检测服务器的健康，不健康则尝试重连其他服务器
         clientEventExecutor.submit(new Runnable() {
             @Override
             public void run() {
@@ -324,27 +326,27 @@ public abstract class RpcClient implements Closeable {
                         }
                         ReconnectContext reconnectContext = reconnectionSignal
                                 .poll(keepAliveTime, TimeUnit.MILLISECONDS);
-                        // 如果重新连接的上下文为空
+                        // 如果重新连接的上下文为空，表明不需要重连，则进行健康检查
                         if (reconnectContext == null) {
                             //check alive time.
-                            // 检查存活时间
+                            // 检查服务端是否健康（每隔keepAliveTime毫秒检查一次）
                             if (System.currentTimeMillis() - lastActiveTimeStamp >= keepAliveTime) {
                                 // 判断当前连接是否健康
                                 boolean isHealthy = healthCheck();
                                 if (!isHealthy) {
+                                    // 如果currentConnection为空，表明客户端可能正在启动或没有服务端可以连接
                                     if (currentConnection == null) {
                                         continue;
                                     }
                                     LoggerUtils.printIfInfoEnabled(LOGGER,
                                             "[{}]Server healthy check fail,currentConnection={}", name,
                                             currentConnection.getConnectionId());
-
                                     RpcClientStatus rpcClientStatus = RpcClient.this.rpcClientStatus.get();
                                     if (RpcClientStatus.SHUTDOWN.equals(rpcClientStatus)) {
                                         // 如果已经关闭连接，则中断循环
                                         break;
                                     }
-
+                                    // 如果currentConnection不为空，则表明服务端不健康
                                     boolean success = RpcClient.this.rpcClientStatus
                                             .compareAndSet(rpcClientStatus, RpcClientStatus.UNHEALTHY);
                                     if (success) {
@@ -428,7 +430,7 @@ public abstract class RpcClient implements Closeable {
             // 添加连接成功事件
             eventLinkedBlockingQueue.offer(new ConnectionEvent(ConnectionEvent.CONNECTED));
         } else {
-            // 要是没有一个服务端能连接，则关闭连接
+            // 要是没有一个服务端能连接，则设置尝试异步重新连接
             switchServerAsync();
         }
 

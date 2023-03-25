@@ -40,6 +40,7 @@ public class NacosExecuteTaskExecuteEngine extends AbstractNacosTaskExecuteEngin
 
     public NacosExecuteTaskExecuteEngine(String name, Logger logger, int dispatchWorkerCount) {
         super(logger);
+        // 在创建NacosExecuteTaskExecuteEngine时，则会初始化任务处理器数组executeWorkers
         executeWorkers = new TaskExecuteWorker[dispatchWorkerCount];
         for (int mod = 0; mod < dispatchWorkerCount; ++mod) {
             executeWorkers[mod] = new TaskExecuteWorker(name, mod, dispatchWorkerCount, getEngineLog());
@@ -62,12 +63,13 @@ public class NacosExecuteTaskExecuteEngine extends AbstractNacosTaskExecuteEngin
 
     @Override
     public void addTask(Object tag, AbstractExecuteTask task) {
+        // 如果没有添加过对应标签的任务执行器，则使用默认的任务执行器
         NacosTaskProcessor processor = getProcessor(tag);
         if (null != processor) {
             processor.process(task);
             return;
         }
-        // 如果该key没有对应的处理器，则使用TaskExecuteWorker来处理
+        // 如果该key没有对应的处理器并且没有设置默认处理器，则使用TaskExecuteWorker来处理
         TaskExecuteWorker worker = getWorker(tag);
         worker.process(task);
     }

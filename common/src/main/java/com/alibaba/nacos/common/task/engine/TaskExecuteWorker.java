@@ -38,6 +38,7 @@ public final class TaskExecuteWorker implements NacosTaskProcessor, Closeable {
 
     /**
      * Max task queue size 32768.
+     * 最大的队列长度，也是默认长度
      */
     private static final int QUEUE_CAPACITY = 1 << 15;
 
@@ -56,8 +57,10 @@ public final class TaskExecuteWorker implements NacosTaskProcessor, Closeable {
     public TaskExecuteWorker(final String name, final int mod, final int total, final Logger logger) {
         this.name = name + "_" + mod + "%" + total;
         this.queue = new ArrayBlockingQueue<Runnable>(QUEUE_CAPACITY);
+        // 默认运行
         this.closed = new AtomicBoolean(false);
         this.log = null == logger ? LoggerFactory.getLogger(TaskExecuteWorker.class) : logger;
+        // 实际上的执行者是内部的InnerWorker
         new InnerWorker(name).start();
     }
 
@@ -73,6 +76,10 @@ public final class TaskExecuteWorker implements NacosTaskProcessor, Closeable {
         return true;
     }
 
+    /**
+     * 添加任务到队列
+     * @param task 任务
+     */
     private void putTask(Runnable task) {
         try {
             queue.put(task);
@@ -81,6 +88,9 @@ public final class TaskExecuteWorker implements NacosTaskProcessor, Closeable {
         }
     }
 
+    /**
+     * 获取队列长度
+     */
     public int pendingTaskCount() {
         return queue.size();
     }
@@ -112,9 +122,12 @@ public final class TaskExecuteWorker implements NacosTaskProcessor, Closeable {
         public void run() {
             while (!closed.get()) {
                 try {
+                    // 弹出task
                     Runnable task = queue.take();
                     long begin = System.currentTimeMillis();
+                    // 运行task
                     task.run();
+                    // 计算task执行时间
                     long duration = System.currentTimeMillis() - begin;
                     if (duration > 1000L) {
                         log.warn("task {} takes {}ms", task, duration);
