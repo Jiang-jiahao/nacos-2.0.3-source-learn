@@ -31,6 +31,7 @@ import javax.annotation.PostConstruct;
 
 /**
  * Distro component registry for v2.
+ * distro组件注册器（nacos v2）
  *
  * @author xiweng.yy
  */
@@ -70,10 +71,13 @@ public class DistroClientComponentRegistry {
      */
     @PostConstruct
     public void doRegister() {
+        // 创建distro处理器
         DistroClientDataProcessor dataProcessor = new DistroClientDataProcessor(clientManager, distroProtocol,
                 upgradeJudgement);
+        // 创建distro传输代理对象
         DistroTransportAgent transportAgent = new DistroClientTransportAgent(clusterRpcClientProxy,
                 serverMemberManager);
+        // 创建失败处理器，该处理器主要是添加失败重试任务
         DistroClientTaskFailedHandler taskFailedHandler = new DistroClientTaskFailedHandler(taskEngineHolder);
         componentHolder.registerDataStorage(DistroClientDataProcessor.TYPE, dataProcessor);
         componentHolder.registerDataProcessor(dataProcessor);

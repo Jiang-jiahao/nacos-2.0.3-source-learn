@@ -60,8 +60,11 @@ public class DistroLoadDataTask implements Runnable {
     @Override
     public void run() {
         try {
+            // 全量加载distro数据存储中的数据
             load();
+            // 判断数据是否加载完毕
             if (!checkCompleted()) {
+                // 没有完毕，则过几秒重新加载
                 GlobalExecutor.submitLoadDataTask(this, distroConfig.getLoadDataRetryDelayMillis());
             } else {
                 loadCallback.onSuccess();
@@ -74,22 +77,26 @@ public class DistroLoadDataTask implements Runnable {
     }
     
     private void load() throws Exception {
+        // 如果memberManager成员为空，则睡眠1秒后再判断
         while (memberManager.allMembersWithoutSelf().isEmpty()) {
             Loggers.DISTRO.info("[DISTRO-INIT] waiting server list init...");
             TimeUnit.SECONDS.sleep(1);
         }
+        // 表明distro数据存储没有加载好，则睡眠1秒后再判断
         while (distroComponentHolder.getDataStorageTypes().isEmpty()) {
             Loggers.DISTRO.info("[DISTRO-INIT] waiting distro data storage register...");
             TimeUnit.SECONDS.sleep(1);
         }
         for (String each : distroComponentHolder.getDataStorageTypes()) {
             if (!loadCompletedMap.containsKey(each) || !loadCompletedMap.get(each)) {
+                // 获取到distro数据存储的快照
                 loadCompletedMap.put(each, loadAllDataSnapshotFromRemote(each));
             }
         }
     }
     
     private boolean loadAllDataSnapshotFromRemote(String resourceType) {
+        // 拿到对应版本的传输代理对象和数据处理器
         DistroTransportAgent transportAgent = distroComponentHolder.findTransportAgent(resourceType);
         DistroDataProcessor dataProcessor = distroComponentHolder.findDataProcessor(resourceType);
         if (null == transportAgent || null == dataProcessor) {
@@ -100,12 +107,14 @@ public class DistroLoadDataTask implements Runnable {
         for (Member each : memberManager.allMembersWithoutSelf()) {
             try {
                 Loggers.DISTRO.info("[DISTRO-INIT] load snapshot {} from {}", resourceType, each.getAddress());
+                // 获取到对应的distro数据
                 DistroData distroData = transportAgent.getDatumSnapshot(each.getAddress());
                 boolean result = dataProcessor.processSnapshot(distroData);
                 Loggers.DISTRO
                         .info("[DISTRO-INIT] load snapshot {} from {} result: {}", resourceType, each.getAddress(),
                                 result);
                 if (result) {
+                    // 表明数据存储初始化完成
                     distroComponentHolder.findDataStorage(resourceType).finishInitial();
                     return true;
                 }

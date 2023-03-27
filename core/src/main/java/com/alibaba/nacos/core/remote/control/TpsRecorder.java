@@ -30,9 +30,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * @version $Id: TpsRecorder.java, v 0.1 2021年01月09日 12:38 PM liuzunfei Exp $
  */
 public class TpsRecorder {
-    
+    // 开始时间
     private long startTime;
-    
+    // 时期单位
     TimeUnit period;
     
     private int slotSize;
@@ -49,7 +49,7 @@ public class TpsRecorder {
     private String monitorType = MonitorType.MONITOR.type;
     
     public TpsRecorder(long startTime, TimeUnit period, String model, int recordSize) {
-        
+        // 根据设置的时间单位，来转换开始时间
         this.startTime = startTime;
         if (period.equals(TimeUnit.MINUTES)) {
             this.startTime = TpsMonitorPoint.getTrimMillsOfMinute(startTime);
@@ -62,6 +62,7 @@ public class TpsRecorder {
         this.slotSize = recordSize + 1;
         slotList = new ArrayList<>(slotSize);
         for (int i = 0; i < slotSize; i++) {
+            // 如果规则模式是proto，则创建多key的tps插槽，如果是FUZZY，则创建单个的Tps插槽
             slotList.add(isProtoModel() ? new MultiKeyTpsSlot() : new TpsSlot());
         }
     }

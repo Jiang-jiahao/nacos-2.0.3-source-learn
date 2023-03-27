@@ -86,10 +86,10 @@ public class GrpcConnection extends Connection {
     private DefaultRequestFuture sendRequestInner(Request request, RequestCallBack callBack) throws NacosException {
         final String requestId = String.valueOf(PushAckIdGenerator.getNextId());
         request.setRequestId(requestId);
-        
+        // 主要用途还是用来实现服务器端的异步调用和同步阻塞
         DefaultRequestFuture defaultPushFuture = new DefaultRequestFuture(getMetaInfo().getConnectionId(), requestId,
                 callBack, () -> RpcAckCallbackSynchronizer.clearFuture(getMetaInfo().getConnectionId(), requestId));
-        
+        // 异步回调，将future设置到一个map中，在GrpcBiStreamRequestAcceptor中会进行这个future的结果赋值操作
         RpcAckCallbackSynchronizer.syncCallback(getMetaInfo().getConnectionId(), requestId, defaultPushFuture);
         sendRequestNoAck(request);
         return defaultPushFuture;

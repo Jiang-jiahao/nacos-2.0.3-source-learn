@@ -22,6 +22,7 @@ import java.util.List;
 
 /**
  * InstanceOperationContext. used in instance batch operation's consumer.
+ * 用于实例批处理的操作上下文
  *
  * @author horizonzy
  * @since 1.4.0

@@ -36,6 +36,7 @@ import java.util.List;
 
 /**
  * Distro mapper, judge which server response input service.
+ * 分发映射器，判断哪个服务器响应输入服务
  *
  * @author nkorange
  */
@@ -66,6 +67,7 @@ public class DistroMapper extends MemberChangeListener {
     @PostConstruct
     public void init() {
         NotifyCenter.registerSubscriber(this);
+        // 获取健康的ip地址
         this.healthyList = MemberUtil.simpleMembers(memberManager.allMembers());
     }
     
@@ -79,12 +81,14 @@ public class DistroMapper extends MemberChangeListener {
      * 判断当前服务器是否负责输入该标签
      *
      * @param responsibleTag responsible tag, serviceName for v1 and ip:port for v2
+     *                       负责标签，v1为serviceName, v2为ip:port
      * @return true if input service is response, otherwise false
      */
     public boolean responsible(String responsibleTag) {
         final List<String> servers = healthyList;
-        //如果没有禁用Distro或者是独立的（非集群），则直接返回true
+        //如果没有启用Distro或者单体的（非集群），则直接返回true
         if (!switchDomain.isDistroEnabled() || EnvUtil.getStandaloneMode()) {
+            // 表示需要处理这个服务
             return true;
         }
         
@@ -92,14 +96,14 @@ public class DistroMapper extends MemberChangeListener {
             // means distro config is not ready yet
             return false;
         }
-        
+        // 参考https://github.com/alibaba/nacos/issues/5902
         int index = servers.indexOf(EnvUtil.getLocalAddress());
         int lastIndex = servers.lastIndexOf(EnvUtil.getLocalAddress());
         //要是本机ip+port在注册的集群中不存在，则直接返回true
         if (lastIndex < 0 || index < 0) {
             return true;
         }
-        
+        // TODO 这里根据标签拿，target是不会改变的，如果集合顺序发生改变会不会出问题
         int target = distroHash(responsibleTag) % servers.size();
         return target >= index && target <= lastIndex;
     }

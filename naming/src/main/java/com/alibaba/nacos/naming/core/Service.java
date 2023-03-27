@@ -50,6 +50,8 @@ import java.util.Map;
 
 /**
  * Service of Nacos server side
+ * nacos服务端内部的service
+ * 继承了API中的Service，里面的一些属性是不必向客户端展示的
  *
  * <p>We introduce a 'service --> cluster --> instance' model, in which service stores a list of clusters, which
  * contain a list of instances.
@@ -68,6 +70,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
     
     /**
      * Identify the information used to determine how many isEmpty judgments the service has experienced.
+     * 识别用于确定服务经历了多少个isEmpty判断的信息。
      */
     private int finalizeCount = 0;
     
@@ -76,27 +79,32 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
     private List<String> owners = new ArrayList<>();
     
     private Boolean resetWeight = false;
-    
+
+    // 服务是否启用，默认启用
     private Boolean enabled = true;
     
     private Selector selector = new NoneSelector();
-    
+
+    // 命名空间，默认是public
     private String namespaceId;
     
     /**
      * IP will be deleted if it has not send beat for some time, default timeout is 30 seconds.
+     * 如果IP在一段时间内没有发送心跳，将被删除，默认超时时间为30秒。
      */
     private long ipDeleteTimeout = 30 * 1000;
     
     private volatile long lastModifiedMillis = 0L;
-    
+
+    // 校验值，主要是distro协议数据同步时使用
     private volatile String checksum;
     
     /**
      * TODO set customized push expire time.
      */
     private long pushCacheMillis = 0L;
-    
+
+    // 集群map
     private Map<String, Cluster> clusterMap = new HashMap<>();
     
     public Service() {
@@ -296,6 +304,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
      */
     public void init() {
         HealthCheckReactor.scheduleCheck(clientBeatCheckTask);
+        // 有可能设置了集群，需要初始化这个集群
         for (Map.Entry<String, Cluster> entry : clusterMap.entrySet()) {
             entry.getValue().setService(this);
             entry.getValue().init();
@@ -546,6 +555,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
         List<Instance> ips = allIPs();
         
         StringBuilder ipsString = new StringBuilder();
+        // 拼接服务相关信息的字符串（例如集群信息和一些服务统计信息）
         ipsString.append(getServiceString());
         
         if (Loggers.SRV_LOG.isDebugEnabled()) {
@@ -555,7 +565,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
         if (CollectionUtils.isNotEmpty(ips)) {
             Collections.sort(ips);
         }
-        
+        // 拼接实例相关字符串
         for (Instance ip : ips) {
             String string = ip.getIp() + ":" + ip.getPort() + "_" + ip.getWeight() + "_" + ip.isHealthy() + "_" + ip
                     .getClusterName();

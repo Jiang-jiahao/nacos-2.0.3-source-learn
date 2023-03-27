@@ -36,10 +36,12 @@ public class DefaultSelfUpgradeChecker implements SelfUpgradeChecker {
     
     @Override
     public boolean isReadyToUpgrade(ServiceManager serviceManager, DoubleWriteDelayTaskEngine taskEngine) {
+        // 这个双写引擎没有需要执行的任务
         return checkServiceAndInstanceNumber(serviceManager) && checkDoubleWriteStatus(taskEngine);
     }
     
     private boolean checkServiceAndInstanceNumber(ServiceManager serviceManager) {
+        // 判断v1中的服务数量和v2中的服务数量是否相等，如果相等则表明升级到了v2，并且同步了数据
         boolean result = serviceManager.getServiceCount() == MetricsMonitor.getDomCountMonitor().get();
         result &= serviceManager.getInstanceCount() == MetricsMonitor.getIpCountMonitor().get();
         return result;

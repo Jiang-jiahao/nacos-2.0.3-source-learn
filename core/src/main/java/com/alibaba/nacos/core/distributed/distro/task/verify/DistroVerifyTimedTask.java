@@ -69,6 +69,7 @@ public class DistroVerifyTimedTask implements Runnable {
                     dataStorage.getClass().getSimpleName());
             return;
         }
+        // 拿到md5后的distro数据集合
         List<DistroData> verifyData = dataStorage.getVerifyData();
         if (null == verifyData || verifyData.isEmpty()) {
             return;
@@ -78,6 +79,7 @@ public class DistroVerifyTimedTask implements Runnable {
             if (null == agent) {
                 continue;
             }
+            // 获取到distro传输代理对象，依次添加任务到立即执行引擎
             executeTaskExecuteEngine.addTask(member.getAddress() + type,
                     new DistroVerifyExecuteTask(agent, verifyData, member.getAddress(), type));
         }

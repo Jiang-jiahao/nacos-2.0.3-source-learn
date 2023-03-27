@@ -35,7 +35,8 @@ import java.util.concurrent.TimeUnit;
  * @version $Id: TpsControlPoint.java, v 0.1 2021年01月09日 12:38 PM liuzunfei Exp $
  */
 public class TpsMonitorPoint {
-    
+
+    // 默认记录长度10
     public static final int DEFAULT_RECORD_SIZE = 10;
     
     private static final String DATETIME_PATTERN = "yyyy-MM-dd HH:mm:ss";
@@ -54,11 +55,16 @@ public class TpsMonitorPoint {
     
     public TpsMonitorPoint(String pointName, int maxTps, String monitorType) {
         // trim to second,uniform all tps control.
+        // 设置开始时间，将毫秒位清0
         this.startTime = getTrimMillsOfSecond(System.currentTimeMillis());
+        // 设置监视点位名称
         this.pointName = pointName;
+        // 创建tps记录器，设置规则模式为模糊的
         this.tpsRecorder = new TpsRecorder(startTime, TimeUnit.SECONDS, TpsControlRule.Rule.MODEL_FUZZY,
                 DEFAULT_RECORD_SIZE);
+        // 设置最大的tps
         this.tpsRecorder.setMaxCount(maxTps);
+        // 设置监视器类型
         this.tpsRecorder.setMonitorType(monitorType);
     }
     

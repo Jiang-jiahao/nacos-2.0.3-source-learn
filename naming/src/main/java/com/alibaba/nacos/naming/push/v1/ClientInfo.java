@@ -34,10 +34,12 @@ public class ClientInfo {
     
     public ClientInfo(String userAgent) {
         String versionStr = StringUtils.isEmpty(userAgent) ? StringUtils.EMPTY : userAgent;
+        // 根据userAgent获取到对应的客户端类型
         this.type = ClientType.getType(versionStr);
         if (versionStr.startsWith(ClientTypeDescription.CPP_CLIENT)) {
             this.type = ClientType.C;
         }
+        // 根据userAgent解析出客户端版本
         this.version = parseVersion(versionStr);
     }
     

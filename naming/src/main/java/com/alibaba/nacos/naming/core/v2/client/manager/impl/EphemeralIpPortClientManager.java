@@ -71,6 +71,7 @@ public class EphemeralIpPortClientManager implements ClientManager {
         clients.computeIfAbsent(client.getClientId(), s -> {
             Loggers.SRV_LOG.info("Client connection {} connect", client.getClientId());
             IpPortBasedClient ipPortBasedClient = (IpPortBasedClient) client;
+            // 临时实例开启检查心跳时间的任务，持久实例开启下探任务
             ipPortBasedClient.init();
             return ipPortBasedClient;
         });

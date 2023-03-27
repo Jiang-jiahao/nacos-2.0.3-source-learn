@@ -113,7 +113,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
         // 发送put事件（更新instance）
         onPut(key, value);
         // If upgrade to 2.0.X, do not sync for v1.
-        // 如果所有集群都升级到2.0.X, 则v1不同步
+        // 如果所有集群都升级到2.0.X, 则v1不同步（因为都是v2之后，注册实例等操作都会走v2的那套了）
         if (ApplicationUtils.getBean(UpgradeJudgement.class).isUseGrpcFeatures()) {
             return;
         }
@@ -139,7 +139,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
      * @param value record
      */
     public void onPut(String key, Record value) {
-        // 判断是否是短暂的instance的key，如果是则存入dataStore
+        // 判断是否是临时实例，如果是则存入dataStore
         if (KeyBuilder.matchEphemeralInstanceListKey(key)) {
             Datum<Instances> datum = new Datum<>();
             datum.value = (Instances) value;
@@ -178,7 +178,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
      * @param server      source server request checksum
      */
     public void onReceiveChecksums(Map<String, String> checksumMap, String server) {
-
+        // 判断是否已经在处理
         if (syncChecksumTasks.containsKey(server)) {
             // Already in process of this server:
             Loggers.DISTRO.warn("sync checksum task already in process with {}", server);
@@ -192,13 +192,14 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
             List<String> toUpdateKeys = new ArrayList<>();
             List<String> toRemoveKeys = new ArrayList<>();
             for (Map.Entry<String, String> entry : checksumMap.entrySet()) {
+                // 如果接受到自己的service，则直接不处理即可
                 if (distroMapper.responsible(KeyBuilder.getServiceName(entry.getKey()))) {
                     // this key should not be sent from remote server:
                     Loggers.DISTRO.error("receive responsible key timestamp of " + entry.getKey() + " from " + server);
                     // abort the procedure:
                     return;
                 }
-
+                // 如果当前节点没有该服务或者服务是空的或者当前节点的服务和传过来的不一样，则添加到更新
                 if (!dataStore.contains(entry.getKey()) || dataStore.get(entry.getKey()).value == null || !dataStore
                         .get(entry.getKey()).value.getChecksum().equals(entry.getValue())) {
                     toUpdateKeys.add(entry.getKey());
@@ -206,11 +207,11 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
             }
 
             for (String key : dataStore.keys()) {
-
+                // 如果不是请求方的服务，则不处理
                 if (!server.equals(distroMapper.mapSrv(KeyBuilder.getServiceName(key)))) {
                     continue;
                 }
-
+                // 是请求方的服务，但是请求过来的数据没有该服务，说明被删除了，则添加到删除列表
                 if (!checksumMap.containsKey(key)) {
                     toRemoveKeys.add(key);
                 }
@@ -231,6 +232,7 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
                 DistroHttpCombinedKey distroKey = new DistroHttpCombinedKey(KeyBuilder.INSTANCE_LIST_KEY_PREFIX,
                         server);
                 distroKey.getActualResourceTypes().addAll(toUpdateKeys);
+                // TODO 为什么又去查一遍
                 DistroData remoteData = distroProtocol.queryFromRemote(distroKey);
                 if (null != remoteData) {
                     processData(remoteData.getContent());
@@ -249,12 +251,15 @@ public class DistroConsistencyServiceImpl implements EphemeralConsistencyService
             Map<String, Datum<Instances>> datumMap = serializer.deserializeMap(data, Instances.class);
 
             for (Map.Entry<String, Datum<Instances>> entry : datumMap.entrySet()) {
+                // 更新或者新增数据
                 dataStore.put(entry.getKey(), entry.getValue());
-
+                // 判断监听器是否监听该key
                 if (!listeners.containsKey(entry.getKey())) {
                     // pretty sure the service not exist:
+                    // 判断是否是临时实例
                     if (switchDomain.isDefaultInstanceEphemeral()) {
                         // create empty service
+                        // 如果服务不存在，则创建服务
                         Loggers.DISTRO.info("creating service {}", entry.getKey());
                         Service service = new Service();
                         String serviceName = KeyBuilder.getServiceName(entry.getKey());

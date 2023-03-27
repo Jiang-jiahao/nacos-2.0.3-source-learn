@@ -24,6 +24,7 @@ import java.util.Map;
 
 /**
  * SPI holder for self upgrade checker.
+ * SPI持有者用于自我升级检查器
  *
  * @author xiweng.yy
  */

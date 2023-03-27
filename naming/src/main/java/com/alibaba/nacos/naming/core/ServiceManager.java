@@ -465,8 +465,9 @@ public class ServiceManager implements RecordListener<Service> {
             service.setGroupName(NamingUtils.getGroupName(serviceName));
             // now validate the service. if failed, exception will be thrown
             service.setLastModifiedMillis(System.currentTimeMillis());
+            // 重新计算校验值（用于distro数据同步）
             service.recalculateChecksum();
-            // 有新创建的集群，则设置到service
+            // 有新创建的集群，则设置到service（集群还未初始化）
             if (cluster != null) {
                 cluster.setService(service);
                 service.getClusterMap().put(cluster.getName(), cluster);
@@ -475,8 +476,9 @@ public class ServiceManager implements RecordListener<Service> {
             service.validate();
             // 将service设置到serviceMap并初始化
             putServiceAndInit(service);
-            // 判断是否是持久化的，持久化则执行
+            // 判断是否是持久实例
             if (!local) {
+                // 持久化实例则将服务信息持久化，临时服务信息不需持久化
                 addOrReplaceService(service);
             }
         }
@@ -494,7 +496,7 @@ public class ServiceManager implements RecordListener<Service> {
      * @throws Exception any error occurred in the process
      */
     public void registerInstance(String namespaceId, String serviceName, Instance instance) throws NacosException {
-        // 如果不存在，则创建服务
+        // 如果不存在，则创建服务，并设置到serviceMap中
         createEmptyService(namespaceId, serviceName, instance.isEphemeral());
         // 获取该服务
         Service service = getService(namespaceId, serviceName);
@@ -604,10 +606,12 @@ public class ServiceManager implements RecordListener<Service> {
         }
         
         if (all) {
+            // 直接使用distro服务中的实例数据
             locatedInstance = ((Instances) datum.value).getInstanceList();
         } else {
             locatedInstance = new ArrayList<>();
             for (Instance instance : waitLocateInstance) {
+                // 用distro中的实例数据和传进来的数据做对比
                 Instance located = locateInstance(((Instances) datum.value).getInstanceList(), instance);
                 if (located == null) {
                     continue;
@@ -650,6 +654,8 @@ public class ServiceManager implements RecordListener<Service> {
         Service service = getService(namespaceId, serviceName);
         
         synchronized (service) {
+            // 创建服务集群，对比更新distro中实例与serviceManager中实例的区别，更新健康信息
+            // 和最后心跳时间，新增ips实例并返回
             List<Instance> instanceList = addIpAddresses(service, ephemeral, ips);
             
             Instances instances = new Instances();
@@ -729,6 +735,7 @@ public class ServiceManager implements RecordListener<Service> {
             // type: ephemeral/persist
             InstanceOperationContext operationContext;
             String type = operationInfo.getConsistencyType();
+            // 判断是否使用了一致性服务
             if (!StringUtils.isEmpty(type)) {
                 switch (type) {
                     case UtilsAndCommons.EPHEMERAL:
@@ -778,28 +785,31 @@ public class ServiceManager implements RecordListener<Service> {
      */
     public List<Instance> updateIpAddresses(Service service, String action, boolean ephemeral, Instance... ips)
             throws NacosException {
-        // 获取服务的相关数据
+        // 获取distro中的服务的相关数据
         Datum datum = consistencyService
                 .get(KeyBuilder.buildInstanceListKey(service.getNamespaceId(), service.getName(), ephemeral));
-        // 获取该服务下所有集群的所有的临时/持久实例
+        // 获取serviceManager中该服务下所有集群的所有的临时实例
         List<Instance> currentIPs = service.allIPs(ephemeral);
         Map<String, Instance> currentInstances = new HashMap<>(currentIPs.size());
+        // 用于不生成重复id使用
         Set<String> currentInstanceIds = Sets.newHashSet();
-        
+        // 构建出key是ipAddr，value为instance的map
         for (Instance instance : currentIPs) {
             currentInstances.put(instance.toIpAddr(), instance);
             currentInstanceIds.add(instance.getInstanceId());
         }
-        
+        // 这个map用来存放更新之后的distro实例数据
         Map<String, Instance> instanceMap;
         if (datum != null && null != datum.value) {
+            // 如果distro中有对应的服务实例数据，对比serviceManager中的实例数据，更新distro中实例的健康信息和最后心跳时间
             instanceMap = setValid(((Instances) datum.value).getInstanceList(), currentInstances);
         } else {
+            // 如果distro中没有对应服务实例的数据，则创建map
             instanceMap = new HashMap<>(ips.length);
         }
         
         for (Instance instance : ips) {
-            // 判断新增的实例对应的集群是否存在，不存在则新增
+            // 判断实例对应的集群是否存在，不存在则新增
             if (!service.getClusterMap().containsKey(instance.getClusterName())) {
                 Cluster cluster = new Cluster(instance.getClusterName(), service);
                 cluster.init();
@@ -808,16 +818,21 @@ public class ServiceManager implements RecordListener<Service> {
                         .warn("cluster: {} not found, ip: {}, will create new cluster with default configuration.",
                                 instance.getClusterName(), instance.toJson());
             }
-            
+            // 判断对应的操作是什么
             if (UtilsAndCommons.UPDATE_INSTANCE_ACTION_REMOVE.equals(action)) {
+                // 如果是删除，则直接删除
                 instanceMap.remove(instance.getDatumKey());
             } else {
+                // 获取到distro中的实例信息
                 Instance oldInstance = instanceMap.get(instance.getDatumKey());
                 if (oldInstance != null) {
+                    // 如果是distro中存在的实例，表示是更新，设置原来的id
                     instance.setInstanceId(oldInstance.getInstanceId());
                 } else {
+                    // 如果distro中不存在的实例，表示是新增，生成instanceId
                     instance.setInstanceId(instance.generateInstanceId(currentInstanceIds));
                 }
+                // 更新旧实例
                 instanceMap.put(instance.getDatumKey(), instance);
             }
             
@@ -847,6 +862,7 @@ public class ServiceManager implements RecordListener<Service> {
         for (Instance instance : oldInstances) {
             Instance instance1 = map.get(instance.toIpAddr());
             if (instance1 != null) {
+                // 更新实例中的健康信息和最后心跳时间
                 instance.setHealthy(instance1.isHealthy());
                 instance.setLastBeat(instance1.getLastBeat());
             }

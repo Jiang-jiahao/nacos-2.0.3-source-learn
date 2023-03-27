@@ -35,6 +35,7 @@ import java.util.Map;
 
 /**
  * Async services check task for upgrading.
+ * 异步服务升级检查任务
  *
  * @author xiweng.yy
  */
@@ -63,7 +64,9 @@ public class AsyncServicesCheckTask extends AbstractExecuteTask {
             Map<String, Service> v1Services = new HashMap<>(INITIALCAPACITY);
             for (String each : serviceManager.getAllNamespaces()) {
                 for (Map.Entry<String, Service> entry : serviceManager.chooseServiceMap(each).entrySet()) {
+                    // 获取到v1的service并添加
                     v1Services.put(buildServiceKey(each, entry.getKey()), entry.getValue());
+                    // 更新实例信息v1->v2
                     checkService(each, entry.getKey(), entry.getValue(), serviceStorage);
                 }
             }
@@ -71,10 +74,12 @@ public class AsyncServicesCheckTask extends AbstractExecuteTask {
             for (String each : com.alibaba.nacos.naming.core.v2.ServiceManager.getInstance().getAllNamespaces()) {
                 for (com.alibaba.nacos.naming.core.v2.pojo.Service serviceV2
                         : com.alibaba.nacos.naming.core.v2.ServiceManager.getInstance().getSingletons(each)) {
+                    // 获取到v2的service并添加
                     v2Services.put(buildServiceKey(each, serviceV2.getGroupedServiceName()), serviceV2);
                 }
             }
             // only check v2 services when upgrading.
+            // 升级时只检查v2的服务
             v2Services.keySet().removeIf(v1Services::containsKey);
             if (v2Services.isEmpty()) {
                 return;
@@ -83,6 +88,7 @@ public class AsyncServicesCheckTask extends AbstractExecuteTask {
                 Loggers.SRV_LOG.debug("{} service in v2 to removed.", v2Services.size());
             }
             for (com.alibaba.nacos.naming.core.v2.pojo.Service service : v2Services.values()) {
+                // 删除v2有v1没有的服务
                 deleteV2Service(service);
             }
         } catch (Exception e) {

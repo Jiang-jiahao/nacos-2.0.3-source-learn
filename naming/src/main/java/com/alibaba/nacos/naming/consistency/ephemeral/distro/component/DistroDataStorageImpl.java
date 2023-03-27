@@ -36,11 +36,14 @@ import java.util.Map;
 
 /**
  * Distro data storage impl.
+ * distro数据存储的实现
+ * 作用：获取distro的数据和验证数据（md5后的）
  *
  * @author xiweng.yy
  */
 public class DistroDataStorageImpl implements DistroDataStorage {
-    
+
+    // 数据存储（数据存放在里面的ConcurrentHashMap，提供了数据的增删查等基本操作）
     private final DataStore dataStore;
     
     private final DistroMapper distroMapper;
@@ -91,6 +94,7 @@ public class DistroDataStorageImpl implements DistroDataStorage {
         }
         Map<String, String> keyChecksums = new HashMap<>(64);
         for (String key : dataStore.keys()) {
+            // 判断服务器是否是可以处理这个key
             if (!distroMapper.responsible(KeyBuilder.getServiceName(key))) {
                 continue;
             }
@@ -98,6 +102,7 @@ public class DistroDataStorageImpl implements DistroDataStorage {
             if (datum == null) {
                 continue;
             }
+            // 拿到value的md5值并设置进去
             keyChecksums.put(key, datum.value.getChecksum());
         }
         if (keyChecksums.isEmpty()) {

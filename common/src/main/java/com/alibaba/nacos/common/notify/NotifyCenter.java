@@ -38,7 +38,7 @@ import static com.alibaba.nacos.api.exception.NacosException.SERVER_ERROR;
 
 /**
  * Unified Event Notify Center.
- * 统一事件通知中心
+ * 统一事件通知中心 单例的
  *
  * @author <a href="mailto:liaochuntao@live.com">liaochuntao</a>
  * @author zongtanghu
@@ -72,12 +72,12 @@ public class NotifyCenter {
     static {
         // Internal ArrayBlockingQueue buffer size. For applications with high write throughput,
         // this value needs to be increased appropriately. default value is 16384
-        // 设置ringBufferSize的大小，如果系统环境变量没有配置则默认16384
+        // 设置ringBufferSize的大小，如果JVM系统属性没有配置该属性则默认16384
         String ringBufferSizeProperty = "nacos.core.notify.ring-buffer-size";
         ringBufferSize = Integer.getInteger(ringBufferSizeProperty, 16384);
         
         // The size of the public publisher's message staging queue buffer
-        // 设置shareBufferSize的大小，如果系统环境变量没有配置则默认1024
+        // 设置shareBufferSize的大小，如果JVM系统属性没有配置该属性则默认1024
         String shareBufferSizeProperty = "nacos.core.notify.share-buffer-size";
         shareBufferSize = Integer.getInteger(shareBufferSizeProperty, 1024);
         // 加载SPI
@@ -89,7 +89,8 @@ public class NotifyCenter {
         } else {
             clazz = DefaultPublisher.class;
         }
-        
+
+        // 定义一个lambda表达式，用于生产publisher，一般默认是DefaultPublisher
         DEFAULT_PUBLISHER_FACTORY = (cls, buffer) -> {
             try {
                 // 生成默认的时间发布器，并初始化
@@ -105,6 +106,7 @@ public class NotifyCenter {
         try {
             
             // Create and init DefaultSharePublisher instance.
+            // 创建一个默认的慢事件发布器
             INSTANCE.sharePublisher = new DefaultSharePublisher();
             // 初始化慢事件的默认共享事件发布器
             INSTANCE.sharePublisher.init(SlowEvent.class, shareBufferSize);
@@ -112,7 +114,7 @@ public class NotifyCenter {
         } catch (Throwable ex) {
             LOGGER.error("Service class newInstance has error : ", ex);
         }
-        
+        // 设置线程关闭的时候，执行一些处理
         ThreadUtils.addShutdownHook(NotifyCenter::shutdown);
     }
     
@@ -183,6 +185,7 @@ public class NotifyCenter {
         // based on subclass's subscribeTypes method return list, it can register to publisher.
         // 判断是否是可以监听多个事件的订阅者类型
         if (consumer instanceof SmartSubscriber) {
+            // 循环监听的事件，如果是慢事件则由DefaultSharePublisher来处理，如果不是慢事件，则由
             for (Class<? extends Event> subscribeType : ((SmartSubscriber) consumer).subscribeTypes()) {
                 // For case, producer: defaultSharePublisher -> consumer: smartSubscriber.
                 if (ClassUtils.isAssignableFrom(SlowEvent.class, subscribeType)) {
@@ -217,10 +220,14 @@ public class NotifyCenter {
         final String topic = ClassUtils.getCanonicalName(subscribeType);
         synchronized (NotifyCenter.class) {
             // MapUtils.computeIfAbsent is a unsafe method.
+            // 根据事件，判断有没有对应的发布器，没有则利用传入的factory创建
             MapUtil.computeIfAbsent(INSTANCE.publisherMap, topic, factory, subscribeType, ringBufferSize);
         }
         // 根据事件类型拿到对应的发布者并添加订阅者
         EventPublisher publisher = INSTANCE.publisherMap.get(topic);
+        // 这里有可能是共享事件发布器（共享事件发布器指的是，该发布器可以发布多种事件，
+        // 慢事件指的是所有种类的事件都用发布器的同一个阻塞队列（不包括一个种类使用一个阻塞队列的情况，比如说NamingEventPublisher特殊情况））
+        // 这个地方参考NamingEventPublisherFactory和NamingEventPublisher的实现，
         if (publisher instanceof ShardedEventPublisher) {
             ((ShardedEventPublisher) publisher).addSubscriber(consumer, subscribeType);
         } else {
@@ -302,11 +309,12 @@ public class NotifyCenter {
      */
     private static boolean publishEvent(final Class<? extends Event> eventType, final Event event) {
         if (ClassUtils.isAssignableFrom(SlowEvent.class, eventType)) {
+            // 如果是慢事件，则直接调用sharePublisher的publish方法
             return INSTANCE.sharePublisher.publish(event);
         }
         
         final String topic = ClassUtils.getCanonicalName(eventType);
-        
+        // 如果不是慢事件，则获取对应的publisher
         EventPublisher publisher = INSTANCE.publisherMap.get(topic);
         if (publisher != null) {
             return publisher.publish(event);

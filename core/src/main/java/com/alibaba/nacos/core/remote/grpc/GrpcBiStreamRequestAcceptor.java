@@ -114,15 +114,20 @@ public class GrpcBiStreamRequestAcceptor extends BiRequestStreamGrpc.BiRequestSt
                     if (labels != null && labels.containsKey(Constants.APPNAME)) {
                         appName = labels.get(Constants.APPNAME);
                     }
-                    
+                    // 构建连接元数据对象
+                    // clientId默认是客户端的ip
                     ConnectionMeta metaInfo = new ConnectionMeta(connectionId, payload.getMetadata().getClientIp(),
                             remoteIp, remotePort, localPort, ConnectionType.GRPC.getType(),
                             setUpRequest.getClientVersion(), appName, setUpRequest.getLabels());
                     metaInfo.setTenant(setUpRequest.getTenant());
+                    // 创建连接对象
                     Connection connection = new GrpcConnection(metaInfo, responseObserver, CONTEXT_KEY_CHANNEL.get());
                     connection.setAbilities(setUpRequest.getAbilities());
                     boolean rejectSdkOnStarting = metaInfo.isSdkSource() && !ApplicationUtils.isStarted();
-                    
+                    // 需要重连的情况有如下：
+                    // 1、客户端是sdk单机的，并且没有启动完成
+                    // 2、客户端是sdk单机的，启动完成了，但是注册失败
+                    // 3、客户端是集群的，不管有没有启动完成，但是注册失败
                     if (rejectSdkOnStarting || !connectionManager.register(connectionId, connection)) {
                         //Not register to the connection manager if current server is over limit or server is starting.
                         try {

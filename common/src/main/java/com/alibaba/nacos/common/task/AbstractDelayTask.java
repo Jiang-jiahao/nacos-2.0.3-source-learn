@@ -18,6 +18,7 @@ package com.alibaba.nacos.common.task;
 
 /**
  * Abstract task which can delay and merge.
+ * 可以延迟、合并的抽象任务
  *
  * @author huali
  * @author xiweng.yy
@@ -26,11 +27,13 @@ public abstract class AbstractDelayTask implements NacosTask {
     
     /**
      * Task time interval between twice processing, unit is millisecond.
+     * 任务处理的时间间隔
      */
     private long taskInterval;
     
     /**
      * The time which was processed at last time, unit is millisecond.
+     * 最近一次的任务处理时间
      */
     private long lastProcessTime;
     
@@ -41,6 +44,7 @@ public abstract class AbstractDelayTask implements NacosTask {
     
     /**
      * merge task.
+     * 合并任务
      *
      * @param task task
      */

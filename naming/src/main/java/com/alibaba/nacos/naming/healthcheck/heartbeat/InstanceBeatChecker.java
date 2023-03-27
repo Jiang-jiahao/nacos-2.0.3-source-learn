@@ -22,6 +22,7 @@ import com.alibaba.nacos.naming.core.v2.pojo.Service;
 
 /**
  * Instance heart beat checker.
+ * 实例心跳检测器
  *
  * @author xiweng.yy
  */

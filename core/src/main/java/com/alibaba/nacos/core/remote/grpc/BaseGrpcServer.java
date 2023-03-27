@@ -110,9 +110,13 @@ public abstract class BaseGrpcServer extends BaseRpcServer {
         addServices(handlerRegistry, serverInterceptor);
         
         server = ServerBuilder.forPort(getServicePort()).executor(getRpcExecutor())
+                // 设置服务端最大消息大小
                 .maxInboundMessageSize(getInboundMessageSize()).fallbackHandlerRegistry(handlerRegistry)
+                // 设置压缩的注册类
                 .compressorRegistry(CompressorRegistry.getDefaultInstance())
+                // 设置解压的注册类
                 .decompressorRegistry(DecompressorRegistry.getDefaultInstance())
+                // 添加过滤器
                 .addTransportFilter(new ServerTransportFilter() {
                     @Override
                     public Attributes transportReady(Attributes transportAttrs) {

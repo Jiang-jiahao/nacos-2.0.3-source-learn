@@ -42,11 +42,14 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class DistroProtocol {
-    
+
+    // 服务器成员管理器
     private final ServerMemberManager memberManager;
-    
+
+    // distro组件的持有者，用来注册/获取各个组件
     private final DistroComponentHolder distroComponentHolder;
-    
+
+    // distro任务引擎持有者
     private final DistroTaskEngineHolder distroTaskEngineHolder;
     
     private volatile boolean isInitialized = false;
@@ -60,11 +63,14 @@ public class DistroProtocol {
     }
     
     private void startDistroTask() {
+        // 判断是否是单机模式，如果是单机模式，则直接初始化完成，不继续执行下面操作
         if (EnvUtil.getStandaloneMode()) {
             isInitialized = true;
             return;
         }
+        // 开启验证任务
         startVerifyTask();
+        // 开启加载全量拉取distro数据快照
         startLoadTask();
     }
     
@@ -85,6 +91,7 @@ public class DistroProtocol {
     }
     
     private void startVerifyTask() {
+        // 开启定时任务执行DistroVerifyTimedTask
         GlobalExecutor.schedulePartitionDataTimedSync(new DistroVerifyTimedTask(memberManager, distroComponentHolder,
                         distroTaskEngineHolder.getExecuteWorkersManager()),
                 DistroConfig.getInstance().getVerifyIntervalMillis());

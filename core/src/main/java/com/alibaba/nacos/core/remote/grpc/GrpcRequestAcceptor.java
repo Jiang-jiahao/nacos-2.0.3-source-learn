@@ -89,6 +89,7 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
         }
 
         // server check.
+        // 检查服务器是否健康的请求，这边接受到请求则直接返回即可
         if (ServerCheckRequest.class.getSimpleName().equals(type)) {
             Payload serverCheckResponseP = GrpcUtils.convert(new ServerCheckResponse(CONTEXT_KEY_CONN_ID.get()));
             traceIfNecessary(serverCheckResponseP, false);
@@ -97,9 +98,11 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
             return;
         }
 
+        // 根据类型，找到对应的请求处理器
         RequestHandler requestHandler = requestHandlerRegistry.getByRequestType(type);
         //no handler found.
         if (requestHandler == null) {
+            // 没有对应处理器则返回错误
             Loggers.REMOTE_DIGEST.warn(String.format("[%s] No handler for request type : %s :", "grpc", type));
             Payload payloadResponse = GrpcUtils
                     .convert(buildErrorResponse(NacosException.NO_HANDLER, "RequestHandler Not Found"));
@@ -110,6 +113,7 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
         }
 
         //check connection status.
+        // 检查连接状态，连接异常则给客户端返回异常信息
         String connectionId = CONTEXT_KEY_CONN_ID.get();
         boolean requestValid = connectionManager.checkValid(connectionId);
         if (!requestValid) {
@@ -135,7 +139,7 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
             responseObserver.onCompleted();
             return;
         }
-
+        // 解析客户端的请求，如果为空或者不是Request类型则返回错误信息
         if (parseObj == null) {
             Loggers.REMOTE_DIGEST.warn("[{}] Invalid request receive  ,parse request is null", connectionId);
             Payload payloadResponse = GrpcUtils
@@ -159,12 +163,14 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
 
         Request request = (Request) parseObj;
         try {
+            // 获取连接对象
             Connection connection = connectionManager.getConnection(CONTEXT_KEY_CONN_ID.get());
             RequestMeta requestMeta = new RequestMeta();
             requestMeta.setClientIp(connection.getMetaInfo().getClientIp());
             requestMeta.setConnectionId(CONTEXT_KEY_CONN_ID.get());
             requestMeta.setClientVersion(connection.getMetaInfo().getVersion());
             requestMeta.setLabels(connection.getMetaInfo().getLabels());
+            // 刷新客户端的最后活跃时间
             connectionManager.refreshActiveTime(requestMeta.getConnectionId());
             Response response = requestHandler.handleRequest(request, requestMeta);
             Payload payloadResponse = GrpcUtils.convert(response);

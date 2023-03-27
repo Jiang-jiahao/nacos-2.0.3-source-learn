@@ -145,6 +145,7 @@ public class DoubleWriteEventListener extends Subscriber<ServiceEvent.ServiceCha
             while (stillCheck) {
                 try {
                     TimeUnit.SECONDS.sleep(5);
+                    // 默认是开启双写的
                     stopDoubleWrite = !ApplicationUtils.getBean(SwitchDomain.class).isDoubleWriteEnabled();
                     if (stopDoubleWrite) {
                         upgradeJudgement.stopAll();

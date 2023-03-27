@@ -23,6 +23,7 @@ import java.util.List;
 
 /**
  * Distro data storage.
+ * distro数据存储
  *
  * @author xiweng.yy
  */

@@ -291,6 +291,7 @@ public abstract class RpcClient implements Closeable {
         });
 
         // connection event consumer.
+        // 连接事件消费者，给对应监听器发送事件
         clientEventExecutor.submit(new Runnable() {
             @Override
             public void run() {
@@ -313,6 +314,7 @@ public abstract class RpcClient implements Closeable {
             }
         });
 
+        // 服务端健康检查及重连服务
         clientEventExecutor.submit(new Runnable() {
             @Override
             public void run() {
@@ -324,14 +326,16 @@ public abstract class RpcClient implements Closeable {
                         }
                         ReconnectContext reconnectContext = reconnectionSignal
                                 .poll(keepAliveTime, TimeUnit.MILLISECONDS);
-                        // 如果重新连接的上下文为空
+                        // 如果keepAliveTime秒没有重连的需要，则会检查server的健康状况
                         if (reconnectContext == null) {
                             //check alive time.
                             // 检查存活时间
+                            // 这里每隔keepAliveTime秒回去检查server健康情况
                             if (System.currentTimeMillis() - lastActiveTimeStamp >= keepAliveTime) {
                                 // 判断当前连接是否健康
                                 boolean isHealthy = healthCheck();
                                 if (!isHealthy) {
+                                    // 如果currentConnection为空，表明还在启动连接server的情况，并不是server那边不健康的问题
                                     if (currentConnection == null) {
                                         continue;
                                     }
@@ -344,11 +348,11 @@ public abstract class RpcClient implements Closeable {
                                         // 如果已经关闭连接，则中断循环
                                         break;
                                     }
-
+                                    // 设置客户端不健康状态，相当于被服务端关闭，换一个服务端
                                     boolean success = RpcClient.this.rpcClientStatus
                                             .compareAndSet(rpcClientStatus, RpcClientStatus.UNHEALTHY);
                                     if (success) {
-                                        // 如果服务不健康，则设置一个空的重新连接上下文对象
+                                        // 如果服务不健康，则设置一个空的重新连接上下文对象（相当于重新选一个随机的server来重连）
                                         reconnectContext = new ReconnectContext(null, false);
                                     } else {
                                         continue;
@@ -377,6 +381,7 @@ public abstract class RpcClient implements Closeable {
                                     break;
                                 }
                             }
+                            // 如果给到的server信息不存在，则随机选取一个
                             if (!serverExist) {
                                 LoggerUtils.printIfInfoEnabled(LOGGER,
                                         "[{}] Recommend server is not in server list ,ignore recommend server {}", name,
@@ -386,7 +391,7 @@ public abstract class RpcClient implements Closeable {
 
                             }
                         }
-                        // 如果server是空的，则获取下一个server重新连接，关闭之前的连接
+                        // server重新连接，关闭之前的连接
                         reconnect(reconnectContext.serverInfo, reconnectContext.onRequestFail);
                     } catch (Throwable throwable) {
                         //Do nothing
@@ -428,10 +433,10 @@ public abstract class RpcClient implements Closeable {
             // 添加连接成功事件
             eventLinkedBlockingQueue.offer(new ConnectionEvent(ConnectionEvent.CONNECTED));
         } else {
-            // 要是没有一个服务端能连接，则关闭连接
+            // 要是没有一个服务端能连接，则尝试随机重连
             switchServerAsync();
         }
-
+        // 监听重新设置连接请求
         registerServerRequestHandler(new ConnectResetRequestHandler());
 
         //register client detection request.
@@ -530,7 +535,7 @@ public abstract class RpcClient implements Closeable {
                 rpcClientStatus.set(RpcClientStatus.RUNNING);
                 return;
             }
-
+            // 如果没有指定server信息，则会重新随机选取一个
             LoggerUtils.printIfInfoEnabled(LOGGER, "[{}] try to re connect to a new server ,server is {}", name,
                     recommendServerInfo == null ? " not appointed,will choose a random server."
                             : (recommendServerInfo.getAddress() + ", will try it once."));
@@ -538,8 +543,9 @@ public abstract class RpcClient implements Closeable {
             // loop until start client success.
             // 循环直到客户端启动成功
             boolean switchSuccess = false;
-
+            // 重试次数
             int reConnectTimes = 0;
+            // 重试了几轮
             int retryTurns = 0;
             Exception lastException = null;
             while (!switchSuccess && !isShutdown()) {
@@ -562,7 +568,7 @@ public abstract class RpcClient implements Closeable {
                                     "[{}] Abandon prev connection ,server is  {}, connectionId is {}", name,
                                     currentConnection.serverInfo.getAddress(), currentConnection.getConnectionId());
                             //set current connection to enable connection event.
-                            // 设置当前连接，用以启动连接事件
+                            // 标注废弃该连接
                             currentConnection.setAbandon(true);
                             // 关闭当前连接
                             closeConnection(currentConnection);

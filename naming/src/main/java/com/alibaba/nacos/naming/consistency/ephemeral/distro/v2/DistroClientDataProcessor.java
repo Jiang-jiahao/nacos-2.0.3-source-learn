@@ -48,6 +48,8 @@ import java.util.Set;
 
 /**
  * Distro processor for v2.
+ * distro处理器 v2
+ * 数据处理、数据存储
  *
  * @author xiweng.yy
  */
@@ -125,6 +127,7 @@ public class DistroClientDataProcessor extends SmartSubscriber implements Distro
             DistroKey distroKey = new DistroKey(client.getClientId(), TYPE);
             distroProtocol.sync(distroKey, DataOperation.DELETE);
         } else if (event instanceof ClientEvent.ClientChangedEvent) {
+            // 暂时没有什么处理，可以自己定义processor来处理
             DistroKey distroKey = new DistroKey(client.getClientId(), TYPE);
             distroProtocol.sync(distroKey, DataOperation.CHANGE);
         }

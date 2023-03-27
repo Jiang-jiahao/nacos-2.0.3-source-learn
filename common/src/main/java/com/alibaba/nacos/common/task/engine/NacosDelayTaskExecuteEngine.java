@@ -32,6 +32,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Nacos delay task execute engine.
+ * nacos延时任务执行引擎
  *
  * @author xiweng.yy
  */
@@ -128,6 +129,7 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
             if (null != existTask) {
                 newTask.merge(existTask);
             }
+            // 如果没有实现merge方法，则直接使用新的task替换旧的
             tasks.put(key, newTask);
         } finally {
             lock.unlock();
@@ -138,12 +140,16 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
      * process tasks in execute engine.
      */
     protected void processTasks() {
+        // 获取task所有的key
         Collection<Object> keys = getAllTaskKeys();
         for (Object taskKey : keys) {
+            // 根据key获取task，并且删除tasks对应的task，判断是否可以执行了
             AbstractDelayTask task = removeTask(taskKey);
+            // task不能执行直接跳过
             if (null == task) {
                 continue;
             }
+            // 获取对应的处理器来处理task，如果没有则跳过
             NacosTaskProcessor processor = getProcessor(taskKey);
             if (null == processor) {
                 getEngineLog().error("processor not found for task, so discarded. " + task);
@@ -151,6 +157,7 @@ public class NacosDelayTaskExecuteEngine extends AbstractNacosTaskExecuteEngine<
             }
             try {
                 // ReAdd task if process failed
+                // 使用processor执行，执行失败则尝试重新延迟执行
                 if (!processor.process(task)) {
                     retryFailedTask(taskKey, task);
                 }

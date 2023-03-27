@@ -51,11 +51,15 @@ public class DistroVerifyExecuteTask extends AbstractExecuteTask {
     
     @Override
     public void run() {
+        // 循环数据
         for (DistroData each : verifyData) {
             try {
+                // 判断是否支持回调传输数据，http不支持
                 if (transportAgent.supportCallbackTransport()) {
+                    // 发送验证数据带回调
                     doSyncVerifyDataWithCallback(each);
                 } else {
+                    // 发送验证数据
                     doSyncVerifyData(each);
                 }
             } catch (Exception e) {

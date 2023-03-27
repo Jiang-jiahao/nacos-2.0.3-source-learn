@@ -29,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author xiweng.yy
  */
 public class NacosServiceLoader {
-    
+    // key为 service的接口类型，value则是实现该接口的类型的class集合
     private static final Map<Class<?>, Collection<Class<?>>> SERVICES = new ConcurrentHashMap<Class<?>, Collection<Class<?>>>();
     
     /**

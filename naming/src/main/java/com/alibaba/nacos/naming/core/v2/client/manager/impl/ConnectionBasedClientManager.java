@@ -68,6 +68,7 @@ public class ConnectionBasedClientManager extends ClientConnectionEventListener 
     @Override
     public boolean clientConnected(String clientId, ClientAttributes attributes) {
         String type = attributes.getClientAttribute(ClientConstants.CONNECTION_TYPE);
+        // 这里因为可能会有其他的rpc可进过spi拓展，所以需要根据type来获取factory
         ClientFactory clientFactory = ClientFactoryHolder.getInstance().findClientFactory(type);
         return clientConnected(clientFactory.newClient(clientId, attributes));
     }
@@ -145,6 +146,7 @@ public class ConnectionBasedClientManager extends ClientConnectionEventListener 
         
         @Override
         public void run() {
+            // 判断客户端对象是否过期，过期则清除
             long currentTime = System.currentTimeMillis();
             for (String each : clientManager.allClientId()) {
                 ConnectionBasedClient client = (ConnectionBasedClient) clientManager.getClient(each);

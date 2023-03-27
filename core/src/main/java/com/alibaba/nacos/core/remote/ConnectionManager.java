@@ -89,9 +89,10 @@ public class ConnectionManager extends Subscriber<ConnectionLimitRuleChangeEvent
     private int loadClient = -1;
     
     String redirectAddress = null;
-    
+
+    // 记录每一种客户端ip的连接数
     private Map<String, AtomicInteger> connectionForClientIp = new ConcurrentHashMap<String, AtomicInteger>(16);
-    
+    // 存放连接对象
     Map<String, Connection> connections = new ConcurrentHashMap<String, Connection>();
     
     @Autowired
@@ -142,9 +143,11 @@ public class ConnectionManager extends Subscriber<ConnectionLimitRuleChangeEvent
     public synchronized boolean register(String connectionId, Connection connection) {
         
         if (connection.isConnected()) {
+            // 如果已经存在，则直接注册成功
             if (connections.containsKey(connectionId)) {
                 return true;
             }
+            // 检查客户端限制规则
             if (!checkLimit(connection)) {
                 return false;
             }
@@ -152,8 +155,9 @@ public class ConnectionManager extends Subscriber<ConnectionLimitRuleChangeEvent
                 connection.setTraced(true);
             }
             connections.put(connectionId, connection);
+            // 递增
             connectionForClientIp.get(connection.getMetaInfo().clientIp).getAndIncrement();
-            
+            // 发送连接成功事件
             clientConnectionEventListenerRegistry.notifyClientConnected(connection);
             Loggers.REMOTE_DIGEST
                     .info("new connection registered successfully, connectionId = {},connection={} ", connectionId,
@@ -167,17 +171,18 @@ public class ConnectionManager extends Subscriber<ConnectionLimitRuleChangeEvent
     
     private boolean checkLimit(Connection connection) {
         String clientIp = connection.getMetaInfo().clientIp;
-        
+        // 如果是集群client，则判断是否已经存在clientId，不存在创建
         if (connection.getMetaInfo().isClusterSource()) {
             if (!connectionForClientIp.containsKey(clientIp)) {
                 connectionForClientIp.putIfAbsent(clientIp, new AtomicInteger(0));
             }
             return true;
         }
+        // 判断sdk客户端连接数量是否超出限制
         if (isOverLimit()) {
             return false;
         }
-        
+        // 这里是sdk的client，则判断是否已经存在clientId，不存在创建
         if (!connectionForClientIp.containsKey(clientIp)) {
             connectionForClientIp.putIfAbsent(clientIp, new AtomicInteger(0));
         }
@@ -186,13 +191,16 @@ public class ConnectionManager extends Subscriber<ConnectionLimitRuleChangeEvent
         
         if (connectionLimitRule != null) {
             // 1.check rule of specific client ip limit.
+            // 1、检查特定客户端（根据client的ip来限制）的限制规则
             if (connectionLimitRule.getCountLimitPerClientIp().containsKey(clientIp)) {
                 Integer integer = connectionLimitRule.getCountLimitPerClientIp().get(clientIp);
                 if (integer != null && integer >= 0) {
+                    // 判断是否超出该规则
                     return currentCount.get() < integer;
                 }
             }
             // 2.check rule of specific client app limit.
+            // 2、检查特定客户端应用程序限制（根据appName来限制）的限制规则
             String appName = connection.getMetaInfo().getAppName();
             if (StringUtils.isNotBlank(appName) && connectionLimitRule.getCountLimitPerClientApp()
                     .containsKey(appName)) {
@@ -203,7 +211,9 @@ public class ConnectionManager extends Subscriber<ConnectionLimitRuleChangeEvent
             }
             
             // 3.check rule of default client ip.
+            // 3、默认客户端ip限制规则
             int countLimitPerClientIpDefault = connectionLimitRule.getCountLimitPerClientIpDefault();
+            // 如果没设置默认的，直接返回true，或者比默认值小的，也返回true
             return countLimitPerClientIpDefault <= 0 || currentCount.get() < countLimitPerClientIpDefault;
         }
         
@@ -289,11 +299,11 @@ public class ConnectionManager extends Subscriber<ConnectionLimitRuleChangeEvent
     public void start() {
         
         // Start UnHealthy Connection Expel Task.
+        // 开启不健康连接去除任务
         RpcScheduledExecutor.COMMON_SERVER_EXECUTOR.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
                 try {
-                    
                     int totalCount = connections.size();
                     Loggers.REMOTE_DIGEST.info("Connection check task start");
                     MetricsMonitor.getLongConnectionMonitor().set(totalCount);

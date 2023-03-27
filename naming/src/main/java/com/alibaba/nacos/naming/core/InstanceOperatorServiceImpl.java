@@ -161,15 +161,19 @@ public class InstanceOperatorServiceImpl implements InstanceOperator {
     @Override
     public ServiceInfo listInstance(String namespaceId, String serviceName, Subscriber subscriber, String cluster,
             boolean healthOnly) throws Exception {
+        // 创建客户端信息对象
         ClientInfo clientInfo = new ClientInfo(subscriber.getAgent());
         String clientIP = subscriber.getIp();
         ServiceInfo result = new ServiceInfo(serviceName, cluster);
         Service service = serviceManager.getService(namespaceId, serviceName);
+        // 获取到默认的缓存时间，默认是3秒
         long cacheMillis = switchDomain.getDefaultCacheMillis();
         
         // now try to enable the push
         try {
+            // 判断是否可以推送
             if (subscriber.getPort() > 0 && pushService.canEnablePush(subscriber.getAgent())) {
+                // 添加客户端
                 subscriberServiceV1.addClient(namespaceId, serviceName, cluster, subscriber.getAgent(),
                         new InetSocketAddress(clientIP, subscriber.getPort()), pushDataSource, StringUtils.EMPTY,
                         StringUtils.EMPTY);
@@ -180,7 +184,7 @@ public class InstanceOperatorServiceImpl implements InstanceOperator {
                     subscriber.getPort(), e);
             cacheMillis = switchDomain.getDefaultCacheMillis();
         }
-        
+        // 服务为空，则返回
         if (service == null) {
             if (Loggers.SRV_LOG.isDebugEnabled()) {
                 Loggers.SRV_LOG.debug("no instance to serve for service: {}", serviceName);
@@ -188,13 +192,14 @@ public class InstanceOperatorServiceImpl implements InstanceOperator {
             result.setCacheMillis(cacheMillis);
             return result;
         }
-        
+        // 检查服务是否已经禁用
         checkIfDisabled(service);
-        
+        // 拿到对接集群下所有的实例
         List<com.alibaba.nacos.naming.core.Instance> srvedIps = service
                 .srvIPs(Arrays.asList(StringUtils.split(cluster, StringUtils.COMMA)));
         
         // filter ips using selector:
+        // 使用选择器过滤ip
         if (service.getSelector() != null && StringUtils.isNotBlank(clientIP)) {
             srvedIps = service.getSelector().select(clientIP, srvedIps);
         }
@@ -210,7 +215,7 @@ public class InstanceOperatorServiceImpl implements InstanceOperator {
             result.setChecksum(service.getChecksum());
             return result;
         }
-        
+        // 计算是否到了保护阀值（计算的时候不包括未开启的实例）
         long total = 0;
         Map<Boolean, List<com.alibaba.nacos.naming.core.Instance>> ipMap = new HashMap<>(2);
         ipMap.put(Boolean.TRUE, new ArrayList<>());

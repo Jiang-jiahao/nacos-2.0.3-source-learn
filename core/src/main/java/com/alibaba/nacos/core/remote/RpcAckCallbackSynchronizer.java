@@ -38,14 +38,16 @@ public class RpcAckCallbackSynchronizer {
     
     @SuppressWarnings("checkstyle:linelength")
     public static final Map<String, Map<String, DefaultRequestFuture>> CALLBACK_CONTEXT = new ConcurrentLinkedHashMap.Builder<String, Map<String, DefaultRequestFuture>>()
+            // 最大容量
             .maximumWeightedCapacity(1000000)
             .listener(new EvictionListener<String, Map<String, DefaultRequestFuture>>() {
                 @Override
                 public void onEviction(String s, Map<String, DefaultRequestFuture> pushCallBack) {
-                    
+                    // 在容量不够的时候，再次put值的时候会触发这个监听器，将最前面的值丢弃
                     pushCallBack.entrySet().forEach(new Consumer<Map.Entry<String, DefaultRequestFuture>>() {
                         @Override
                         public void accept(Map.Entry<String, DefaultRequestFuture> stringDefaultPushFutureEntry) {
+                            // 设置被舍弃的对象的失败结果
                             stringDefaultPushFutureEntry.getValue().setFailResult(new TimeoutException());
                         }
                     });
@@ -87,7 +89,7 @@ public class RpcAckCallbackSynchronizer {
      */
     public static void syncCallback(String connectionId, String requestId, DefaultRequestFuture defaultPushFuture)
             throws NacosException {
-        
+        // 根据connectionId，获取到对应的map
         Map<String, DefaultRequestFuture> stringDefaultPushFutureMap = initContextIfNecessary(connectionId);
         
         if (!stringDefaultPushFutureMap.containsKey(requestId)) {

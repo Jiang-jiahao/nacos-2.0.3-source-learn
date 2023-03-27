@@ -42,7 +42,8 @@ import java.util.concurrent.ConcurrentMap;
  */
 @Component
 public class ClientServiceIndexesManager extends SmartSubscriber {
-    
+
+    // key为服务名 value为客户端id
     private final ConcurrentMap<Service, Set<String>> publisherIndexes = new ConcurrentHashMap<>();
     
     private final ConcurrentMap<Service, Set<String>> subscriberIndexes = new ConcurrentHashMap<>();
@@ -77,10 +78,15 @@ public class ClientServiceIndexesManager extends SmartSubscriber {
     @Override
     public List<Class<? extends Event>> subscribeTypes() {
         List<Class<? extends Event>> result = new LinkedList<>();
+        // 注册服务事件
         result.add(ClientOperationEvent.ClientRegisterServiceEvent.class);
+        // 注销服务事件
         result.add(ClientOperationEvent.ClientDeregisterServiceEvent.class);
+        // 订阅服务事件
         result.add(ClientOperationEvent.ClientSubscribeServiceEvent.class);
+        // 取消订阅服务事件
         result.add(ClientOperationEvent.ClientUnsubscribeServiceEvent.class);
+        // 客户端断开连接事件
         result.add(ClientEvent.ClientDisconnectEvent.class);
         return result;
     }
@@ -90,6 +96,7 @@ public class ClientServiceIndexesManager extends SmartSubscriber {
         if (event instanceof ClientEvent.ClientDisconnectEvent) {
             handleClientDisconnect((ClientEvent.ClientDisconnectEvent) event);
         } else if (event instanceof ClientOperationEvent) {
+            // 客户端操作的事件
             handleClientOperation((ClientOperationEvent) event);
         }
     }

@@ -124,6 +124,7 @@ public class DefaultPublisher extends Thread implements EventPublisher {
                 final Event event = queue.take();
                 // 执行对应的订阅者
                 receiveEvent(event);
+                // 判断现在事件的sequence和上个事件的sequence哪个大，取大的那个
                 UPDATER.compareAndSet(this, lastEventSequence, Math.max(lastEventSequence, event.sequence()));
             }
         } catch (Throwable ex) {
@@ -192,7 +193,7 @@ public class DefaultPublisher extends Thread implements EventPublisher {
         // Notification single event listener
         for (Subscriber subscriber : subscribers) {
             // Whether to ignore expiration events
-            // 判断事件是否已经过期
+            // 判断事件是否需要判断事件过期，如果需要则进行判断（如果执行上个事件的sequence大，则该事件将不会执行）
             if (subscriber.ignoreExpireEvent() && lastEventSequence > currentEventSequence) {
                 LOGGER.debug("[NotifyCenter] the {} is unacceptable to this subscriber, because had expire",
                         event.getClass());

@@ -21,6 +21,7 @@ import com.alibaba.nacos.core.distributed.distro.entity.DistroKey;
 
 /**
  * Distro transport agent.
+ * distro传输代理
  *
  * @author xiweng.yy
  */

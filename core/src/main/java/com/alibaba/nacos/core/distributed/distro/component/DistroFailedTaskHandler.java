@@ -21,6 +21,7 @@ import com.alibaba.nacos.core.distributed.distro.entity.DistroKey;
 
 /**
  * Distro failed task handler.
+ * distro失败任务处理器
  *
  * @author xiweng.yy
  */

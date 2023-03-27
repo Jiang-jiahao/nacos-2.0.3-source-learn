@@ -24,11 +24,14 @@ import java.util.Objects;
  * @author xiweng.yy
  */
 public class DistroKey {
-    
+
+    // 资源key
     private String resourceKey;
-    
+
+    // 资源类型
     private String resourceType;
-    
+
+    // 目标服务器ip
     private String targetServer;
     
     public DistroKey() {

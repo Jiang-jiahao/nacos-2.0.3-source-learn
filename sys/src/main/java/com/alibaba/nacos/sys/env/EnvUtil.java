@@ -394,7 +394,7 @@ public class EnvUtil {
     }
     
     public static Resource getApplicationConfFileResource() {
-        //先获取自己配置的顺序的配置文件
+        //先获取自己配置的额外的配置文件spring.config.additional-location
         Resource customResource = getCustomFileResource();
         //如果获取不到，则获取默认的配置文件
         return customResource == null ? getDefaultResource() : customResource;

@@ -102,6 +102,7 @@ public class DistroFilter implements Filter {
             String distroTag = distroTagGenerator.getResponsibleTag(req);
             
             if (distroMapper.responsible(distroTag)) {
+                // 如果是自己的服务，则自己直接处理
                 filterChain.doFilter(req, resp);
                 return;
             }
@@ -130,7 +131,7 @@ public class DistroFilter implements Filter {
             
             final String body = IoUtils.toString(req.getInputStream(), Charsets.UTF_8.name());
             final Map<String, String> paramsValue = HttpClient.translateParameterMap(req.getParameterMap());
-            
+            // 如果不是自己的服务，则转发给别的服务器处理
             RestResult<String> result = HttpClient
                     .request("http://" + targetServer + req.getRequestURI(), headerList, paramsValue, body,
                             PROXY_CONNECT_TIMEOUT, PROXY_READ_TIMEOUT, Charsets.UTF_8.name(), req.getMethod());

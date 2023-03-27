@@ -67,7 +67,8 @@ public class UpgradeJudgement extends Subscriber<MembersChangeEvent> {
      * 只有当所有集群升级到1.4.0以上时，该特性才成立
      */
     private final AtomicBoolean useJraftFeatures = new AtomicBoolean(false);
-    
+
+    // 所有服务器是否都是版本2.x的标识
     private final AtomicBoolean all20XVersion = new AtomicBoolean(false);
     
     private final RaftPeerSet raftPeerSet;
@@ -100,14 +101,17 @@ public class UpgradeJudgement extends Subscriber<MembersChangeEvent> {
         this.memberManager = memberManager;
         this.serviceManager = serviceManager;
         this.doubleWriteDelayTaskEngine = doubleWriteDelayTaskEngine;
+        // 判断是否升级
         Boolean upgraded = upgradeStates.isUpgraded();
         upgraded = upgraded != null && upgraded;
         boolean isStandaloneMode = EnvUtil.getStandaloneMode();
+        // 如果是单机模式或者是升级了，则设置以下属性成true
         if (isStandaloneMode || upgraded) {
             useGrpcFeatures.set(true);
             useJraftFeatures.set(true);
             all20XVersion.set(true);
         }
+        // 如果不是单机模式，没有升级，则初始化升级检查器
         if (!isStandaloneMode) {
             initUpgradeChecker();
         }
@@ -115,12 +119,15 @@ public class UpgradeJudgement extends Subscriber<MembersChangeEvent> {
     }
     
     private void initUpgradeChecker() {
+        // 一般获取默认的自我升级检查器
         selfUpgradeChecker = SelfUpgradeCheckerSpiHolder.findSelfChecker(EnvUtil.getProperty("upgrading.checker.type", "default"));
         upgradeChecker = ExecutorFactory.newSingleScheduledExecutorService(new NameThreadFactory("upgrading.checker"));
         upgradeChecker.scheduleAtFixedRate(() -> {
+            // 如果升级了，则停止
             if (isUseGrpcFeatures()) {
                 return;
             }
+            // 检查是否可以升级
             boolean canUpgrade = checkForUpgrade();
             Loggers.SRV_LOG.info("upgrade check result {}", canUpgrade);
             if (canUpgrade) {
@@ -201,16 +208,20 @@ public class UpgradeJudgement extends Subscriber<MembersChangeEvent> {
     }
     
     private boolean checkForUpgrade() {
+        // 如果没有升级，则进行检查
         if (!useGrpcFeatures.get()) {
+            // 判断当前节点是否有升级的条件
             boolean selfCheckResult = selfUpgradeChecker.isReadyToUpgrade(serviceManager, doubleWriteDelayTaskEngine);
             Member self = memberManager.getSelf();
             self.setExtendVal(MemberMetaDataConstants.READY_TO_UPGRADE, selfCheckResult);
             memberManager.updateMember(self);
             if (!selfCheckResult) {
+                // 如果还没可以升级，则开启异步服务检查任务
                 NamingExecuteTaskDispatcher.getInstance().dispatchAndExecuteTask(AsyncServicesCheckTask.class,
                         new AsyncServicesCheckTask(doubleWriteDelayTaskEngine, this));
             }
         }
+        // 判断所有的集群是否都可以升级，如果有一个没有准备好则返回false
         boolean result = true;
         for (Member each : memberManager.allMembers()) {
             Object isReadyToUpgrade = each.getExtendVal(MemberMetaDataConstants.READY_TO_UPGRADE);

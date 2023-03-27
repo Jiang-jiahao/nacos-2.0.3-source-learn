@@ -20,6 +20,7 @@ import com.alibaba.nacos.core.distributed.distro.entity.DistroData;
 
 /**
  * Distro data processor.
+ * distro数据处理器
  *
  * @author xiweng.yy
  */

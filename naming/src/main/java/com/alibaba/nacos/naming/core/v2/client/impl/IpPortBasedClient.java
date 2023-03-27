@@ -81,6 +81,7 @@ public class IpPortBasedClient extends AbstractClient {
     
     @Override
     public boolean addServiceInstance(Service service, InstancePublishInfo instancePublishInfo) {
+        // 转换为健康检查实例
         return super.addServiceInstance(service, parseToHealthCheckInstance(instancePublishInfo));
     }
     
@@ -127,9 +128,11 @@ public class IpPortBasedClient extends AbstractClient {
      */
     public void init() {
         if (ephemeral) {
+            // 临时实例，客户端检查是否还连接
             beatCheckTask = new ClientBeatCheckTaskV2(this);
             HealthCheckReactor.scheduleCheck(beatCheckTask);
         } else {
+            // 持久实例检查客户端是否还健康
             healthCheckTaskV2 = new HealthCheckTaskV2(this);
             HealthCheckReactor.scheduleCheck(healthCheckTaskV2);
         }

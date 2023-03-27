@@ -36,6 +36,7 @@ public class DistroTaskEngineHolder {
     private final DistroExecuteTaskExecuteEngine executeWorkersManager = new DistroExecuteTaskExecuteEngine();
     
     public DistroTaskEngineHolder(DistroComponentHolder distroComponentHolder) {
+        // 延时任务引擎设置默认任务处理器
         DistroDelayTaskProcessor defaultDelayTaskProcessor = new DistroDelayTaskProcessor(this, distroComponentHolder);
         delayTaskExecuteEngine.setDefaultTaskProcessor(defaultDelayTaskProcessor);
     }

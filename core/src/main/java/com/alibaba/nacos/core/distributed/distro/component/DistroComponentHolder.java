@@ -24,6 +24,7 @@ import java.util.Set;
 
 /**
  * Distro component holder.
+ * distro组件持有者（提供各种组件的注册和获取）
  *
  * @author xiweng.yy
  */

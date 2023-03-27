@@ -40,12 +40,14 @@ import java.util.concurrent.ConcurrentMap;
 
 /**
  * Service storage.
+ * 服务存储
  *
  * @author xiweng.yy
  */
 @Component
 public class ServiceStorage {
-    
+
+    // 客户端和服务索引管理器
     private final ClientServiceIndexesManager serviceIndexesManager;
     
     private final ClientManager clientManager;
@@ -55,7 +57,7 @@ public class ServiceStorage {
     private final NamingMetadataManager metadataManager;
     
     private final ConcurrentMap<Service, ServiceInfo> serviceDataIndexes;
-    
+    // key是服务名，value则是集群名称集合
     private final ConcurrentMap<Service, Set<String>> serviceClusterIndex;
     
     public ServiceStorage(ClientServiceIndexesManager serviceIndexesManager, ClientManagerDelegate clientManager,
@@ -103,6 +105,7 @@ public class ServiceStorage {
     private List<Instance> getAllInstancesFromIndex(Service service) {
         Set<Instance> result = new HashSet<>();
         Set<String> clusters = new HashSet<>();
+        // 获取注册了该服务的客户端
         for (String each : serviceIndexesManager.getAllClientsRegisteredService(service)) {
             Optional<InstancePublishInfo> instancePublishInfo = getInstanceInfo(each, service);
             if (instancePublishInfo.isPresent()) {

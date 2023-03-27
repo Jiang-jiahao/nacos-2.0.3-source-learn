@@ -47,13 +47,16 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
     
     @Override
     public void registerInstance(Service service, Instance instance, String clientId) {
+        // 添加服务到ServiceManager中
         Service singleton = ServiceManager.getInstance().getSingleton(service);
+        // 获取到对应的客户端
         Client client = clientManager.getClient(clientId);
         if (!clientIsLegal(client, clientId)) {
             return;
         }
         InstancePublishInfo instanceInfo = getPublishInfo(instance);
         client.addServiceInstance(singleton, instanceInfo);
+        // 刷新客户端的最后更新时间（这里clientManager会有定时任务清理过期的client，防止client过期需要更新时间）
         client.setLastUpdatedTime();
         NotifyCenter.publishEvent(new ClientOperationEvent.ClientRegisterServiceEvent(singleton, clientId));
         NotifyCenter
