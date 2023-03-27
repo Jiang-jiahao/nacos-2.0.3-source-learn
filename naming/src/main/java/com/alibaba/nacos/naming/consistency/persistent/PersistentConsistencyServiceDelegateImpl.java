@@ -37,15 +37,15 @@ import java.util.Optional;
  */
 @Component("persistentConsistencyServiceDelegate")
 public class PersistentConsistencyServiceDelegateImpl implements PersistentConsistencyService {
-    
+
     private final ClusterVersionJudgement versionJudgement;
-    
+    // 旧版的raft
     private final RaftConsistencyServiceImpl oldPersistentConsistencyService;
-    
+    // jraft，根据是否是单机模式创建对应的处理器
     private final BasePersistentServiceProcessor newPersistentConsistencyService;
-    
+
     private volatile boolean switchNewPersistentService = false;
-    
+
     public PersistentConsistencyServiceDelegateImpl(ClusterVersionJudgement versionJudgement,
             RaftConsistencyServiceImpl oldPersistentConsistencyService, ProtocolManager protocolManager)
             throws Exception {
@@ -54,52 +54,52 @@ public class PersistentConsistencyServiceDelegateImpl implements PersistentConsi
         this.newPersistentConsistencyService = createNewPersistentServiceProcessor(protocolManager, versionJudgement);
         init();
     }
-    
+
     private void init() {
         this.versionJudgement.registerObserver(isAllNewVersion -> switchNewPersistentService = isAllNewVersion, -1);
     }
-    
+
     @Override
     public void put(String key, Record value) throws NacosException {
         switchOne().put(key, value);
     }
-    
+
     @Override
     public void remove(String key) throws NacosException {
         switchOne().remove(key);
     }
-    
+
     @Override
     public Datum get(String key) throws NacosException {
         return switchOne().get(key);
     }
-    
+
     @Override
     public void listen(String key, RecordListener listener) throws NacosException {
         oldPersistentConsistencyService.listen(key, listener);
         newPersistentConsistencyService.listen(key, listener);
     }
-    
+
     @Override
     public void unListen(String key, RecordListener listener) throws NacosException {
         newPersistentConsistencyService.unListen(key, listener);
         oldPersistentConsistencyService.unListen(key, listener);
     }
-    
+
     @Override
     public boolean isAvailable() {
         return switchOne().isAvailable();
     }
-    
+
     @Override
     public Optional<String> getErrorMsg() {
         return switchOne().getErrorMsg();
     }
-    
+
     private PersistentConsistencyService switchOne() {
         return switchNewPersistentService ? newPersistentConsistencyService : oldPersistentConsistencyService;
     }
-    
+
     private BasePersistentServiceProcessor createNewPersistentServiceProcessor(ProtocolManager protocolManager,
             ClusterVersionJudgement versionJudgement) throws Exception {
         final BasePersistentServiceProcessor processor =

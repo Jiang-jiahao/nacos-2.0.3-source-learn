@@ -26,6 +26,7 @@ import java.util.HashSet;
 
 /**
  * Naming subscriber service for local.
+ * naming本地订阅服务
  *
  * @author xiweng.yy
  * @deprecated Will be removed with {@link com.alibaba.nacos.naming.push.v1.NamingSubscriberServiceV1Impl}
@@ -33,17 +34,17 @@ import java.util.HashSet;
 @org.springframework.stereotype.Service
 @Deprecated
 public class NamingSubscriberServiceLocalImpl implements NamingSubscriberService {
-    
+
     private final NamingSubscriberServiceV1Impl namingSubscriberServiceV1;
-    
+
     private final NamingSubscriberServiceV2Impl namingSubscriberServiceV2;
-    
+
     public NamingSubscriberServiceLocalImpl(NamingSubscriberServiceV1Impl namingSubscriberServiceV1,
             NamingSubscriberServiceV2Impl namingSubscriberServiceV2) {
         this.namingSubscriberServiceV1 = namingSubscriberServiceV1;
         this.namingSubscriberServiceV2 = namingSubscriberServiceV2;
     }
-    
+
     @Override
     public Collection<Subscriber> getSubscribers(String namespaceId, String serviceName) {
         Collection<Subscriber> result = new HashSet<>();
@@ -51,7 +52,7 @@ public class NamingSubscriberServiceLocalImpl implements NamingSubscriberService
         result.addAll(namingSubscriberServiceV2.getSubscribers(namespaceId, serviceName));
         return result;
     }
-    
+
     @Override
     public Collection<Subscriber> getSubscribers(Service service) {
         Collection<Subscriber> result = new HashSet<>();
@@ -59,7 +60,7 @@ public class NamingSubscriberServiceLocalImpl implements NamingSubscriberService
         result.addAll(namingSubscriberServiceV2.getSubscribers(service));
         return result;
     }
-    
+
     @Override
     public Collection<Subscriber> getFuzzySubscribers(String namespaceId, String serviceName) {
         Collection<Subscriber> result = new HashSet<>();
@@ -67,7 +68,7 @@ public class NamingSubscriberServiceLocalImpl implements NamingSubscriberService
         result.addAll(namingSubscriberServiceV2.getFuzzySubscribers(namespaceId, serviceName));
         return result;
     }
-    
+
     @Override
     public Collection<Subscriber> getFuzzySubscribers(Service service) {
         Collection<Subscriber> result = new HashSet<>();

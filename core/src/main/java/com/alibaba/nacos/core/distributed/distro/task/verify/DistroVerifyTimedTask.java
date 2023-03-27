@@ -29,24 +29,25 @@ import java.util.List;
 
 /**
  * Timed to start distro verify task.
+ * 启动Distro协议的数据验证流程
  *
  * @author xiweng.yy
  */
 public class DistroVerifyTimedTask implements Runnable {
-    
+
     private final ServerMemberManager serverMemberManager;
-    
+
     private final DistroComponentHolder distroComponentHolder;
-    
+
     private final DistroExecuteTaskExecuteEngine executeTaskExecuteEngine;
-    
+
     public DistroVerifyTimedTask(ServerMemberManager serverMemberManager, DistroComponentHolder distroComponentHolder,
             DistroExecuteTaskExecuteEngine executeTaskExecuteEngine) {
         this.serverMemberManager = serverMemberManager;
         this.distroComponentHolder = distroComponentHolder;
         this.executeTaskExecuteEngine = executeTaskExecuteEngine;
     }
-    
+
     @Override
     public void run() {
         try {
@@ -54,14 +55,16 @@ public class DistroVerifyTimedTask implements Runnable {
             if (Loggers.DISTRO.isDebugEnabled()) {
                 Loggers.DISTRO.debug("server list is: {}", targetServer);
             }
+            // 每一种类型的数据，都要向其他节点发起验证
             for (String each : distroComponentHolder.getDataStorageTypes()) {
+                // 对dataStorage内的数据进行验证
                 verifyForDataStorage(each, targetServer);
             }
         } catch (Exception e) {
             Loggers.DISTRO.error("[DISTRO-FAILED] verify task failed.", e);
         }
     }
-    
+
     private void verifyForDataStorage(String type, List<Member> targetServer) {
         DistroDataStorage dataStorage = distroComponentHolder.findDataStorage(type);
         if (!dataStorage.isFinishInitial()) {

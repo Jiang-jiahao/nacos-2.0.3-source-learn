@@ -20,6 +20,7 @@ import com.alibaba.nacos.naming.consistency.ConsistencyService;
 
 /**
  * A consistency service that guarantee CP consistency for the published data.
+ * 一致性服务，保证发布数据的CP一致性
  *
  * <p>CP consistency is hereby defined as follows:
  *
@@ -31,5 +32,5 @@ import com.alibaba.nacos.naming.consistency.ConsistencyService;
  * @since 1.0.0
  */
 public interface PersistentConsistencyService extends ConsistencyService {
-    
+
 }

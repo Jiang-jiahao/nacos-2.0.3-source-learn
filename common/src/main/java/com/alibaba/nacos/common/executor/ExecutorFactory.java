@@ -37,44 +37,44 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings({"PMD.ThreadPoolCreationRule", "checkstyle:overloadmethodsdeclarationorder",
         "checkstyle:missingjavadocmethod"})
 public final class ExecutorFactory {
-    
+
     public static ExecutorService newSingleExecutorService() {
         return Executors.newFixedThreadPool(1);
     }
-    
+
     public static ExecutorService newSingleExecutorService(final ThreadFactory threadFactory) {
         return Executors.newFixedThreadPool(1, threadFactory);
     }
-    
+
     public static ExecutorService newFixedExecutorService(final int nThreads) {
         return Executors.newFixedThreadPool(nThreads);
     }
-    
+
     public static ExecutorService newFixedExecutorService(final int nThreads, final ThreadFactory threadFactory) {
         return Executors.newFixedThreadPool(nThreads, threadFactory);
     }
-    
+
     public static ScheduledExecutorService newSingleScheduledExecutorService(final ThreadFactory threadFactory) {
         return Executors.newScheduledThreadPool(1, threadFactory);
     }
-    
+
     public static ScheduledExecutorService newScheduledExecutorService(final int nThreads,
             final ThreadFactory threadFactory) {
         return Executors.newScheduledThreadPool(nThreads, threadFactory);
     }
-    
+
     public static ThreadPoolExecutor newCustomerThreadExecutor(final int coreThreads, final int maxThreads,
             final long keepAliveTimeMs, final ThreadFactory threadFactory) {
         return new ThreadPoolExecutor(coreThreads, maxThreads, keepAliveTimeMs, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<Runnable>(), threadFactory);
     }
-    
+
     public static final class Managed {
-        
+
         private static final String DEFAULT_NAMESPACE = "nacos";
-        
+
         private static final ThreadPoolManager THREAD_POOL_MANAGER = ThreadPoolManager.getInstance();
-        
+
         /**
          * Create a new single executor service with default thread factory and register to manager.
          *
@@ -86,7 +86,7 @@ public final class ExecutorFactory {
             THREAD_POOL_MANAGER.register(DEFAULT_NAMESPACE, group, executorService);
             return executorService;
         }
-        
+
         /**
          * Create a new single executor service with input thread factory and register to manager.
          *
@@ -99,7 +99,7 @@ public final class ExecutorFactory {
             THREAD_POOL_MANAGER.register(DEFAULT_NAMESPACE, group, executorService);
             return executorService;
         }
-        
+
         /**
          * Create a new fixed executor service with default thread factory and register to manager.
          *
@@ -112,7 +112,7 @@ public final class ExecutorFactory {
             THREAD_POOL_MANAGER.register(DEFAULT_NAMESPACE, group, executorService);
             return executorService;
         }
-        
+
         /**
          * Create a new fixed executor service with input thread factory and register to manager.
          *
@@ -127,7 +127,7 @@ public final class ExecutorFactory {
             THREAD_POOL_MANAGER.register(DEFAULT_NAMESPACE, group, executorService);
             return executorService;
         }
-        
+
         /**
          * Create a new single scheduled executor service with input thread factory and register to manager.
          *
@@ -141,7 +141,7 @@ public final class ExecutorFactory {
             THREAD_POOL_MANAGER.register(DEFAULT_NAMESPACE, group, executorService);
             return executorService;
         }
-        
+
         /**
          * Create a new scheduled executor service with input thread factory and register to manager.
          *
@@ -156,7 +156,7 @@ public final class ExecutorFactory {
             THREAD_POOL_MANAGER.register(DEFAULT_NAMESPACE, group, executorService);
             return executorService;
         }
-        
+
         /**
          * Create a new custom executor service and register to manager.
          *

@@ -28,22 +28,23 @@ import java.util.Objects;
 
 /**
  * JRaft operations interface.
+ * JRaft操作接口
  *
  * @author <a href="mailto:liaochuntao@live.com">liaochuntao</a>
  */
 @SuppressWarnings("PMD.ClassNamingShouldBeCamelRule")
 public class JRaftMaintainService {
-    
+
     private final JRaftServer raftServer;
-    
+
     public JRaftMaintainService(JRaftServer raftServer) {
         this.raftServer = raftServer;
     }
-    
+
     public RestResult<String> execute(String[] args) {
         return RestResultUtils.failed("not support yet");
     }
-    
+
     /**
      * Execute relevant commands.
      *
@@ -68,7 +69,7 @@ public class JRaftMaintainService {
         }
         return RestResultUtils.success();
     }
-    
+
     private RestResult<String> single(CliService cliService, String groupId, Node node, Map<String, String> args) {
         try {
             if (node == null) {
@@ -84,5 +85,5 @@ public class JRaftMaintainService {
             return RestResultUtils.failed(ex.getMessage());
         }
     }
-    
+
 }

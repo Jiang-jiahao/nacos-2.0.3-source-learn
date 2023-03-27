@@ -30,71 +30,72 @@ import java.util.Set;
 
 /**
  * raft config.
+ * raft配置
  *
  * @author <a href="mailto:liaochuntao@live.com">liaochuntao</a>
  */
 @Component
 @ConfigurationProperties(prefix = "nacos.core.protocol.raft")
 public class RaftConfig implements Config<RequestProcessor4CP> {
-    
+
     private static final long serialVersionUID = 9174789390266064002L;
-    
+
     private Map<String, String> data = Collections.synchronizedMap(new HashMap<>());
-    
+
     private String selfAddress;
-    
+
     private Set<String> members = Collections.synchronizedSet(new HashSet<>());
-    
+
     @Override
     public void setMembers(String self, Set<String> members) {
         this.selfAddress = self;
         this.members.clear();
         this.members.addAll(members);
     }
-    
+
     @Override
     public String getSelfMember() {
         return selfAddress;
     }
-    
+
     @Override
     public Set<String> getMembers() {
         return members;
     }
-    
+
     @Override
     public void addMembers(Set<String> members) {
         this.members.addAll(members);
     }
-    
+
     @Override
     public void removeMembers(Set<String> members) {
         this.members.removeAll(members);
     }
-    
+
     public Map<String, String> getData() {
         return data;
     }
-    
+
     public void setData(Map<String, String> data) {
         this.data = Collections.synchronizedMap(data);
     }
-    
+
     @Override
     public void setVal(String key, String value) {
         data.put(key, value);
     }
-    
+
     @Override
     public String getVal(String key) {
         return data.get(key);
     }
-    
+
     @Override
     public String getValOfDefault(String key, String defaultVal) {
         return data.getOrDefault(key, defaultVal);
     }
-    
+
     @Override
     public String toString() {
         try {

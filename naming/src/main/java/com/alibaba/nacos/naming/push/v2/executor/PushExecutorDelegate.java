@@ -26,32 +26,33 @@ import java.util.Optional;
 
 /**
  * Delegate for push execute service.
+ * 推送执行服务委派器
  *
  * @author xiweng.yy
  */
 @SuppressWarnings("PMD.ServiceOrDaoClassShouldEndWithImplRule")
 @Component
 public class PushExecutorDelegate implements PushExecutor {
-    
+
     private final PushExecutorRpcImpl rpcPushExecuteService;
-    
+
     private final PushExecutorUdpImpl udpPushExecuteService;
-    
+
     public PushExecutorDelegate(PushExecutorRpcImpl rpcPushExecuteService, PushExecutorUdpImpl udpPushExecuteService) {
         this.rpcPushExecuteService = rpcPushExecuteService;
         this.udpPushExecuteService = udpPushExecuteService;
     }
-    
+
     @Override
     public void doPush(String clientId, Subscriber subscriber, PushDataWrapper data) {
         getPushExecuteService(clientId, subscriber).doPush(clientId, subscriber, data);
     }
-    
+
     @Override
     public void doPushWithCallback(String clientId, Subscriber subscriber, PushDataWrapper data, PushCallBack callBack) {
         getPushExecuteService(clientId, subscriber).doPushWithCallback(clientId, subscriber, data, callBack);
     }
-    
+
     private PushExecutor getPushExecuteService(String clientId, Subscriber subscriber) {
         Optional<SpiPushExecutor> result = SpiImplPushExecutorHolder.getInstance()
                 .findPushExecutorSpiImpl(clientId, subscriber);

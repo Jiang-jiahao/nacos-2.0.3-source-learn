@@ -31,23 +31,24 @@ import com.alibaba.nacos.naming.push.v2.executor.PushExecutor;
 
 /**
  * Nacos naming push delay task execute engine.
+ * Nacos naming 推送延迟任务执行引擎
  *
  * @author xiweng.yy
  */
 public class PushDelayTaskExecuteEngine extends NacosDelayTaskExecuteEngine {
-    
+
     private final ClientManager clientManager;
-    
+
     private final ClientServiceIndexesManager indexesManager;
-    
+
     private final ServiceStorage serviceStorage;
-    
+
     private final NamingMetadataManager metadataManager;
 
     private final PushExecutor pushExecutor;
-    
+
     private final SwitchDomain switchDomain;
-    
+
     public PushDelayTaskExecuteEngine(ClientManager clientManager, ClientServiceIndexesManager indexesManager,
                                       ServiceStorage serviceStorage, NamingMetadataManager metadataManager,
                                       PushExecutor pushExecutor, SwitchDomain switchDomain) {
@@ -60,19 +61,19 @@ public class PushDelayTaskExecuteEngine extends NacosDelayTaskExecuteEngine {
         this.switchDomain = switchDomain;
         setDefaultTaskProcessor(new PushDelayTaskProcessor(this));
     }
-    
+
     public ClientManager getClientManager() {
         return clientManager;
     }
-    
+
     public ClientServiceIndexesManager getIndexesManager() {
         return indexesManager;
     }
-    
+
     public ServiceStorage getServiceStorage() {
         return serviceStorage;
     }
-    
+
     public NamingMetadataManager getMetadataManager() {
         return metadataManager;
     }
@@ -80,7 +81,7 @@ public class PushDelayTaskExecuteEngine extends NacosDelayTaskExecuteEngine {
     public PushExecutor getPushExecutor() {
         return pushExecutor;
     }
-    
+
     @Override
     protected void processTasks() {
         if (!switchDomain.isPushEnabled()) {
@@ -88,17 +89,18 @@ public class PushDelayTaskExecuteEngine extends NacosDelayTaskExecuteEngine {
         }
         super.processTasks();
     }
-    
+
     private static class PushDelayTaskProcessor implements NacosTaskProcessor {
-        
+
         private final PushDelayTaskExecuteEngine executeEngine;
-        
+
         public PushDelayTaskProcessor(PushDelayTaskExecuteEngine executeEngine) {
             this.executeEngine = executeEngine;
         }
-        
+
         @Override
         public boolean process(NacosTask task) {
+            // 转换成PushDelayTask
             PushDelayTask pushDelayTask = (PushDelayTask) task;
             Service service = pushDelayTask.getService();
             NamingExecuteTaskDispatcher.getInstance()

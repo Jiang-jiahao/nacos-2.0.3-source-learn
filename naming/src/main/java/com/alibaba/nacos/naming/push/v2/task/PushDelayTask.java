@@ -25,17 +25,18 @@ import java.util.Set;
 
 /**
  * Nacos naming push delay task.
+ * Nacos naming 延时推送任务
  *
  * @author xiweng.yy
  */
 public class PushDelayTask extends AbstractDelayTask {
-    
+
     private final Service service;
-    
+
     private boolean pushToAll;
-    
+
     private Set<String> targetClients;
-    
+
     public PushDelayTask(Service service, long delay) {
         this.service = service;
         pushToAll = true;
@@ -43,7 +44,7 @@ public class PushDelayTask extends AbstractDelayTask {
         setTaskInterval(delay);
         setLastProcessTime(System.currentTimeMillis());
     }
-    
+
     public PushDelayTask(Service service, long delay, String targetClient) {
         this.service = service;
         this.pushToAll = false;
@@ -52,7 +53,7 @@ public class PushDelayTask extends AbstractDelayTask {
         setTaskInterval(delay);
         setLastProcessTime(System.currentTimeMillis());
     }
-    
+
     @Override
     public void merge(AbstractDelayTask task) {
         if (!(task instanceof PushDelayTask)) {
@@ -68,15 +69,15 @@ public class PushDelayTask extends AbstractDelayTask {
         setLastProcessTime(Math.min(getLastProcessTime(), task.getLastProcessTime()));
         Loggers.PUSH.info("[PUSH] Task merge for {}", service);
     }
-    
+
     public Service getService() {
         return service;
     }
-    
+
     public boolean isPushToAll() {
         return pushToAll;
     }
-    
+
     public Set<String> getTargetClients() {
         return targetClients;
     }

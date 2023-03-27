@@ -18,13 +18,15 @@ package com.alibaba.nacos.naming.push.v1;
 
 /**
  * Data source for naming push.
+ * naming 推送的数据源
  *
  * @author nacos
  */
 public interface DataSource {
-    
+
     /**
      * Get push data for a specified client.
+     * 获取指定客户端的推送数据
      *
      * @param client target client
      * @return data to push

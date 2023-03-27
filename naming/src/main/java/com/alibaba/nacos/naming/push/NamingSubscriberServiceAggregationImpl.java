@@ -38,23 +38,24 @@ import java.util.Map;
  * Aggregation naming subscriber service. Aggregate all implementation of {@link NamingSubscriberService} and
  * subscribers from other nodes.
  *
+ * 聚合naming订阅服务。聚合{@link NamingSubscriberService}的所有实现和来自其他节点的订阅者
  * @author xiweng.yy
  */
 @org.springframework.stereotype.Service
 public class NamingSubscriberServiceAggregationImpl implements NamingSubscriberService {
-    
+
     private static final String SUBSCRIBER_ON_SYNC_URL = "/service/subscribers";
-    
+
     private final NamingSubscriberServiceLocalImpl subscriberServiceLocal;
-    
+
     private final ServerMemberManager memberManager;
-    
+
     public NamingSubscriberServiceAggregationImpl(NamingSubscriberServiceLocalImpl subscriberServiceLocal,
             ServerMemberManager serverMemberManager) {
         this.subscriberServiceLocal = subscriberServiceLocal;
         this.memberManager = serverMemberManager;
     }
-    
+
     @Override
     public Collection<Subscriber> getSubscribers(String namespaceId, String serviceName) {
         Collection<Subscriber> result = new LinkedList<>(
@@ -64,7 +65,7 @@ public class NamingSubscriberServiceAggregationImpl implements NamingSubscriberS
         }
         return result;
     }
-    
+
     @Override
     public Collection<Subscriber> getSubscribers(Service service) {
         Collection<Subscriber> result = new LinkedList<>(subscriberServiceLocal.getSubscribers(service));
@@ -73,7 +74,7 @@ public class NamingSubscriberServiceAggregationImpl implements NamingSubscriberS
         }
         return result;
     }
-    
+
     @Override
     public Collection<Subscriber> getFuzzySubscribers(String namespaceId, String serviceName) {
         Collection<Subscriber> result = new LinkedList<>(
@@ -83,7 +84,7 @@ public class NamingSubscriberServiceAggregationImpl implements NamingSubscriberS
         }
         return result;
     }
-    
+
     @Override
     public Collection<Subscriber> getFuzzySubscribers(Service service) {
         Collection<Subscriber> result = new LinkedList<>(subscriberServiceLocal.getFuzzySubscribers(service));
@@ -92,7 +93,7 @@ public class NamingSubscriberServiceAggregationImpl implements NamingSubscriberS
         }
         return result;
     }
-    
+
     private void getSubscribersFromRemotes(String namespaceId, String serviceName, Collection<Subscriber> result) {
         for (Member server : memberManager.allMembersWithoutSelf()) {
             Map<String, String> paramValues = new HashMap<>(128);

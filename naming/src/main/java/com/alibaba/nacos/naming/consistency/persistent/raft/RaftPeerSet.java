@@ -50,6 +50,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Sets of raft peers.
+ * raft成员的一个集合（成员是server）
  *
  * @author nacos
  * @deprecated will remove in 1.4.x
@@ -58,32 +59,34 @@ import java.util.concurrent.atomic.AtomicLong;
 @Component
 @DependsOn("ProtocolManager")
 public class RaftPeerSet extends MemberChangeListener implements Closeable {
-    
+
+    // server成员管理器（里面有所有server的信息）
     private final ServerMemberManager memberManager;
-    
+
     private AtomicLong localTerm = new AtomicLong(0L);
-    
+
     private RaftPeer leader = null;
-    
+
     private volatile Map<String, RaftPeer> peers = new HashMap<>(8);
-    
+
     private Set<String> sites = new HashSet<>();
-    
+
     private volatile boolean ready = false;
-    
+
     private Set<Member> oldMembers = new HashSet<>();
-    
+
     public RaftPeerSet(ServerMemberManager memberManager) {
         this.memberManager = memberManager;
     }
-    
+
     @PostConstruct
     public void init() {
+        // 向通知中心注册订阅者
         NotifyCenter.registerSubscriber(this);
         // 根据server创建peers
         changePeers(memberManager.allMembers());
     }
-    
+
     @Override
     public void shutdown() throws NacosException {
         this.localTerm.set(-1);
@@ -93,22 +96,22 @@ public class RaftPeerSet extends MemberChangeListener implements Closeable {
         this.ready = false;
         this.oldMembers.clear();
     }
-    
+
     public RaftPeer getLeader() {
         if (EnvUtil.getStandaloneMode()) {
             return local();
         }
         return leader;
     }
-    
+
     public Set<String> allSites() {
         return sites;
     }
-    
+
     public boolean isReady() {
         return ready;
     }
-    
+
     /**
      * Remove raft node.
      *
@@ -119,7 +122,7 @@ public class RaftPeerSet extends MemberChangeListener implements Closeable {
             peers.remove(server);
         }
     }
-    
+
     /**
      * Update raft peer.
      *
@@ -130,7 +133,7 @@ public class RaftPeerSet extends MemberChangeListener implements Closeable {
         peers.put(peer.ip, peer);
         return peer;
     }
-    
+
     /**
      * Judge whether input address is leader.
      *
@@ -141,19 +144,19 @@ public class RaftPeerSet extends MemberChangeListener implements Closeable {
         if (EnvUtil.getStandaloneMode()) {
             return true;
         }
-        
+
         if (leader == null) {
             Loggers.RAFT.warn("[IS LEADER] no leader is available now!");
             return false;
         }
-        
+
         return StringUtils.equals(leader.ip, ip);
     }
-    
+
     public Set<String> allServersIncludeMyself() {
         return peers.keySet();
     }
-    
+
     /**
      * Get all servers excludes current peer.
      *
@@ -161,21 +164,21 @@ public class RaftPeerSet extends MemberChangeListener implements Closeable {
      */
     public Set<String> allServersWithoutMySelf() {
         Set<String> servers = new HashSet<String>(peers.keySet());
-        
+
         // exclude myself
         servers.remove(local().ip);
-        
+
         return servers;
     }
-    
+
     public Collection<RaftPeer> allPeers() {
         return peers.values();
     }
-    
+
     public int size() {
         return peers.size();
     }
-    
+
     /**
      * Calculate and decide which peer is leader. If has new peer has more than half vote, change leader to new peer.
      * 计算并决定哪个同伴是领导者。如果有新同伴有超过一半的选票，换领导给新同伴。
@@ -186,7 +189,7 @@ public class RaftPeerSet extends MemberChangeListener implements Closeable {
     public RaftPeer decideLeader(RaftPeer candidate) {
         // 更新节点信息
         peers.put(candidate.ip, candidate);
-        
+
         SortedBag ips = new TreeBag();
         // 投票最大数是多少
         int maxApproveCount = 0;
@@ -217,10 +220,10 @@ public class RaftPeerSet extends MemberChangeListener implements Closeable {
                 Loggers.RAFT.info("{} has become the LEADER", leader.ip);
             }
         }
-        
+
         return leader;
     }
-    
+
     /**
      * Set leader as new candidate.
      * 设置新的候选人为leader
@@ -236,7 +239,7 @@ public class RaftPeerSet extends MemberChangeListener implements Closeable {
                     .info("{} has become the LEADER, local: {}, leader: {}", leader.ip, JacksonUtils.toJson(local()),
                             JacksonUtils.toJson(leader));
         }
-        
+
         for (final RaftPeer peer : peers.values()) {
             Map<String, String> params = new HashMap<>(1);
             if (!Objects.equals(peer, candidate) && peer.state == RaftPeer.State.LEADER) {
@@ -252,18 +255,18 @@ public class RaftPeerSet extends MemberChangeListener implements Closeable {
                                 peer.state = RaftPeer.State.FOLLOWER;
                                 return;
                             }
-                            
+
                             update(JacksonUtils.toObj(result.getData(), RaftPeer.class));
                         }
-                        
+
                         @Override
                         public void onError(Throwable throwable) {
-                        
+
                         }
-                        
+
                         @Override
                         public void onCancel() {
-                        
+
                         }
                     });
                 } catch (Exception e) {
@@ -272,13 +275,13 @@ public class RaftPeerSet extends MemberChangeListener implements Closeable {
                 }
             }
         }
-        
+
         return update(candidate);
     }
-    
+
     /**
      * Get local raft peer.
-     * 获取本地raft同伴
+     * 获取本地raft成员
      *
      * @return local raft peer
      */
@@ -296,87 +299,90 @@ public class RaftPeerSet extends MemberChangeListener implements Closeable {
                     "unable to find local peer: " + NetUtils.localServer() + ", all peers: " + Arrays
                             .toString(peers.keySet().toArray()));
         }
-        
+
         return peer;
     }
-    
+
     public RaftPeer get(String server) {
         return peers.get(server);
     }
-    
+
     public int majorityCount() {
         return peers.size() / 2 + 1;
     }
-    
+
     /**
      * Reset set.
      * 初始化设置leader
      */
     public void reset() {
-        
+
         leader = null;
-        
+
         for (RaftPeer peer : peers.values()) {
             peer.voteFor = null;
         }
     }
-    
+
     public void setTerm(long term) {
         localTerm.set(term);
     }
-    
+
     public long getTerm() {
         return localTerm.get();
     }
-    
+
     public boolean contains(RaftPeer remote) {
         return peers.containsKey(remote.ip);
     }
-    
+
     @Override
     public void onEvent(MembersChangeEvent event) {
         Collection<Member> members = event.getMembers();
         Collection<Member> newMembers = new HashSet<>(members);
         newMembers.removeAll(oldMembers);
-        
+
         // If an IP change occurs, the change starts
+        // 如果发生IP更改，则更改开始 TODO 不太明白，在删除的情况下
         if (!newMembers.isEmpty()) {
             changePeers(members);
         }
-        
+
         oldMembers.clear();
         oldMembers.addAll(members);
     }
-    
+
     protected void changePeers(Collection<Member> members) {
         Map<String, RaftPeer> tmpPeers = new HashMap<>(members.size());
-        
+
         for (Member member : members) {
-            
+
             final String address = member.getAddress();
+            // 判断是否存在，存在则获取并添加进tmpPeers
             if (peers.containsKey(address)) {
                 tmpPeers.put(address, peers.get(address));
                 continue;
             }
-            
+            // 表示不存在，则创建一个peer
             RaftPeer raftPeer = new RaftPeer();
             raftPeer.ip = address;
-            
+
             // first time meet the local server:
+            // 第一次与本地服务器见面
             if (EnvUtil.getLocalAddress().equals(address)) {
                 raftPeer.term.set(localTerm.get());
             }
-            
+
             tmpPeers.put(address, raftPeer);
         }
-        
+
         // replace raft peer set:
         peers = tmpPeers;
-        
+
         ready = true;
         Loggers.RAFT.info("raft peers changed: " + members);
     }
-    
+
     @Override
     public String toString() {
         return "RaftPeerSet{" + "localTerm=" + localTerm + ", leader=" + leader + ", peers=" + peers + ", sites="
