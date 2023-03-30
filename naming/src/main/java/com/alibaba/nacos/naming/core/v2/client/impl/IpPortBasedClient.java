@@ -123,6 +123,7 @@ public class IpPortBasedClient extends AbstractClient {
             result.setCluster(instancePublishInfo.getCluster());
             result.setExtendDatum(instancePublishInfo.getExtendDatum());
         }
+        // 如果不是临时实例，初始化健康检查
         if (!ephemeral) {
             result.initHealthCheck();
         }

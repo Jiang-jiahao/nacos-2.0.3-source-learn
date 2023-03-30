@@ -69,6 +69,9 @@ public class ServiceChangeV2Task extends AbstractDelayTask {
             return;
         }
         ServiceChangeV2Task oldTask = (ServiceChangeV2Task) task;
+        // 因为这里只有两种操作，第一种是删除、第二种是更新，如果旧的是删除，新的是更新，
+        // 则还是遵循删除操作；如果旧的是更新，新的是删除，则遵循删除操作。所以这里只要action不同，
+        // 则改为删除状态，下面的content也是同理
         if (!action.equals(oldTask.getAction())) {
             action = DoubleWriteAction.REMOVE;
             content = DoubleWriteContent.BOTH;

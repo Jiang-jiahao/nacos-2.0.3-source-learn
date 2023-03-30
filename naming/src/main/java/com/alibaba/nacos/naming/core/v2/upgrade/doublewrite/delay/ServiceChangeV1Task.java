@@ -116,18 +116,22 @@ public class ServiceChangeV1Task extends AbstractDelayTask {
         
         @Override
         public boolean process(NacosTask task) {
+            // 处理V1服务改变任务
             ServiceChangeV1Task serviceTask = (ServiceChangeV1Task) task;
             if (serviceTask.getAction() == DoubleWriteAction.REMOVE) {
                 Loggers.SRV_LOG.info("double write removal of service {}, ephemeral: {}",
                         serviceTask.getServiceName(), serviceTask.isEphemeral());
+                // 如果是删除，则删除V2的
                 dispatchRemoveAllTask(serviceTask);
                 return true;
             }
             Loggers.SRV_LOG.info("double write for service {}, ephemeral: {}, content {}",
                     serviceTask.getServiceName(), serviceTask.isEphemeral(), serviceTask.getContent());
+            // 获取到v1的service
             ServiceManager serviceManager = ApplicationUtils.getBean(ServiceManager.class);
             Service service = serviceManager.getService(serviceTask.getNamespace(), serviceTask.getServiceName());
             if (null != service) {
+                // 判断操作服务的元数据还是实例还是两者都操作
                 switch (serviceTask.getContent()) {
                     case METADATA:
                         dispatchMetadataTask(service, serviceTask.isEphemeral());
@@ -143,13 +147,16 @@ public class ServiceChangeV1Task extends AbstractDelayTask {
         }
         
         private void dispatchRemoveAllTask(ServiceChangeV1Task serviceTask) {
+            // 转换成v2的服务
             com.alibaba.nacos.naming.core.v2.pojo.Service serviceV2 = com.alibaba.nacos.naming.core.v2.pojo.Service.newService(
                     serviceTask.getNamespace(),
                     NamingUtils.getGroupName(serviceTask.getServiceName()),
                     NamingUtils.getServiceName(serviceTask.getServiceName()),
                     serviceTask.isEphemeral()
             );
+            // 构建出v2的删除task
             DoubleWriteServiceRemovalToV2Task serviceRemovalTask = new DoubleWriteServiceRemovalToV2Task(serviceV2);
+            // 执行v2的删除服务任务
             NamingExecuteTaskDispatcher.getInstance().dispatchAndExecuteTask(serviceV2.getName(), serviceRemovalTask);
         }
 
@@ -162,25 +169,30 @@ public class ServiceChangeV1Task extends AbstractDelayTask {
             ServiceStorage serviceStorage = ApplicationUtils.getBean(ServiceStorage.class);
             InstanceUpgradeHelper instanceUpgradeHelper = ApplicationUtils.getBean(InstanceUpgradeHelper.class);
             ServiceInfo serviceInfo = serviceStorage.getPushData(transfer(service, ephemeral));
+            // 获取v1服务的所有实例
             List<Instance> newInstance = service.allIPs(ephemeral);
             Set<String> instances = new HashSet<>();
             for (Instance each : newInstance) {
                 instances.add(each.toIpAddr());
+                // 将v1实例转成v2实例
                 com.alibaba.nacos.api.naming.pojo.Instance instance = instanceUpgradeHelper.toV2(each);
                 // Ephemeral value in v1 data may not be right.
                 // The ephemeral come from parameter which is reference to data key matching
                 instance.setEphemeral(ephemeral);
                 DoubleWriteInstanceChangeToV2Task instanceTask = new DoubleWriteInstanceChangeToV2Task(
                         service.getNamespaceId(), service.getName(), instance, true);
+                // 执行v2实例注册事件
                 NamingExecuteTaskDispatcher.getInstance()
                         .dispatchAndExecuteTask(IpPortBasedClient.getClientId(each.toIpAddr(), ephemeral),
                                 instanceTask);
             }
+            // 获取v2的实例
             List<com.alibaba.nacos.api.naming.pojo.Instance> oldInstance = serviceInfo.getHosts();
             for (com.alibaba.nacos.api.naming.pojo.Instance each : oldInstance) {
                 if (!instances.contains(each.toInetAddr())) {
                     DoubleWriteInstanceChangeToV2Task instanceTask = new DoubleWriteInstanceChangeToV2Task(
                             service.getNamespaceId(), service.getName(), each, false);
+                    // 执行v2实例删除事件（删除v1存在的，因为前面v1的实例在v2已经新增过了。实际上更新就是删除后新增）
                     NamingExecuteTaskDispatcher.getInstance()
                             .dispatchAndExecuteTask(IpPortBasedClient.getClientId(each.toInetAddr(), ephemeral),
                                     instanceTask);

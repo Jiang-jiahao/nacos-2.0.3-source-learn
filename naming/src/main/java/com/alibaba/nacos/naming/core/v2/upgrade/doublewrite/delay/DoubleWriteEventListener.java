@@ -106,6 +106,7 @@ public class DoubleWriteEventListener extends Subscriber<ServiceEvent.ServiceCha
         if (stopDoubleWrite) {
             return;
         }
+        // 这地方集群降级的时候有可能会出现UseGrpcFeatures为false，All20XVersion为true的情况，也不进行双写
         if (upgradeJudgement.isUseGrpcFeatures() || upgradeJudgement.isAll20XVersion()) {
             return;
         }

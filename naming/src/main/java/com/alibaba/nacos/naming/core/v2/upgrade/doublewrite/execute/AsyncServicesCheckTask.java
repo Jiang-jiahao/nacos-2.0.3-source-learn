@@ -59,7 +59,9 @@ public class AsyncServicesCheckTask extends AbstractExecuteTask {
             return;
         }
         try {
+            // 获取存储v1服务的容器
             ServiceManager serviceManager = ApplicationUtils.getBean(ServiceManager.class);
+            // 获取存储v2服务的容器
             ServiceStorage serviceStorage = ApplicationUtils.getBean(ServiceStorage.class);
             Map<String, Service> v1Services = new HashMap<>(INITIALCAPACITY);
             for (String each : serviceManager.getAllNamespaces()) {

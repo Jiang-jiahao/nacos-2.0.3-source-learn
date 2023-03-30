@@ -178,6 +178,7 @@ public class UpgradeJudgement extends Subscriber<MembersChangeEvent> {
             // come from below 1.3.0
             if (null == versionStr) {
                 checkAndDowngrade(false);
+                // 等降级完成在进行设置false，防止双写提前进行
                 all20XVersion.set(false);
                 return;
             }
@@ -210,13 +211,17 @@ public class UpgradeJudgement extends Subscriber<MembersChangeEvent> {
     private boolean checkForUpgrade() {
         // 如果没有升级，则进行检查
         if (!useGrpcFeatures.get()) {
-            // 判断当前节点是否有升级的条件
+            // 判断当前节点是否有升级的条件（不需要判断版本，因为只有2.0才会有这个代码，才会有准备升级的属性readyToUpgrade）
+            // 如果v1和v2的实例数据都一样的多，并且双写引擎没有执行的任务，那么就认为v1和v2数据已经完全同步一样
             boolean selfCheckResult = selfUpgradeChecker.isReadyToUpgrade(serviceManager, doubleWriteDelayTaskEngine);
             Member self = memberManager.getSelf();
             self.setExtendVal(MemberMetaDataConstants.READY_TO_UPGRADE, selfCheckResult);
             memberManager.updateMember(self);
             if (!selfCheckResult) {
-                // 如果还没可以升级，则开启异步服务检查任务
+                // 如果还没可以升级，表明v1和v2实例不一样，或者引擎中还有没执行完的任务，则在这里开启异步服务检查任务
+                // 主要作用：对比v1和v2的实例，删除v1没有，v2中有的实例，使其v1、v2实例同步一致
+                // 为什么要开启异步的？因为节点可能有新增实例之后还没有执行双写的时候宕机了的情况，这样双写是不会同步的，
+                // 只有在下次更新服务双写的时候会恢复正常，所以这个地方需要开启并去同步数据
                 NamingExecuteTaskDispatcher.getInstance().dispatchAndExecuteTask(AsyncServicesCheckTask.class,
                         new AsyncServicesCheckTask(doubleWriteDelayTaskEngine, this));
             }
