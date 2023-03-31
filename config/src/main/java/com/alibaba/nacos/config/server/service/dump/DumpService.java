@@ -287,6 +287,7 @@ public abstract class DumpService {
                     }
                 }
             }
+            // 启动的时候，有些节点心跳还没过期的，就不需要全量备份数据
             if (isAllDump) {
                 LogUtil.DEFAULT_LOG.info("start clear all config-info.");
                 DiskUtil.clearAll();

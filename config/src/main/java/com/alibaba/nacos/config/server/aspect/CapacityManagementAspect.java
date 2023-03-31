@@ -62,11 +62,13 @@ public class CapacityManagementAspect {
     
     /**
      * Need to judge the size of content whether to exceed the limitation.
+     * 拦截ConfigController类下的publishConfig方法
      */
     @Around(SYNC_UPDATE_CONFIG_ALL)
     public Object aroundSyncUpdateConfigAll(ProceedingJoinPoint pjp, HttpServletRequest request,
             HttpServletResponse response, String dataId, String group, String content, String appName, String srcUser,
             String tenant, String tag) throws Throwable {
+        // 判断是否开启容量管理，没有开启直接跳过
         if (!PropertyUtil.isManageCapacity()) {
             return pjp.proceed();
         }
@@ -75,11 +77,14 @@ public class CapacityManagementAspect {
         if (StringUtils.isBlank(betaIps)) {
             if (StringUtils.isBlank(tag)) {
                 // do capacity management limitation check for writing or updating config_info table.
+                // 对写入或更新config_info表进行容量管理限制检查
                 if (persistService.findConfigInfo(dataId, group, tenant) == null) {
                     // Write operation.
+                    // 写入操作
                     return do4Insert(pjp, request, response, group, tenant, content);
                 }
                 // Update operation.
+                // 更新操作
                 return do4Update(pjp, request, response, dataId, group, tenant, content);
             }
         }

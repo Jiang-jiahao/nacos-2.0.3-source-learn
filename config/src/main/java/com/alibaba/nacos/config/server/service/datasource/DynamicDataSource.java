@@ -44,12 +44,14 @@ public class DynamicDataSource {
             // In cluster mode, external databases are used by default
             
             if (PropertyUtil.isEmbeddedStorage()) {
+                // 使用内嵌数据库
                 if (localDataSourceService == null) {
                     localDataSourceService = new LocalDataSourceServiceImpl();
                     localDataSourceService.init();
                 }
                 return localDataSourceService;
             } else {
+                // 使用外部数据库（mysql）
                 if (basicDataSourceService == null) {
                     basicDataSourceService = new ExternalDataSourceServiceImpl();
                     basicDataSourceService.init();

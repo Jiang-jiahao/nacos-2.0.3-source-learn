@@ -32,6 +32,7 @@ public class ConditionStandaloneEmbedStorage implements Condition {
     
     @Override
     public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+        // 判断在单机模式下是否使用内置数据库存储
         return PropertyUtil.isEmbeddedStorage() && EnvUtil.getStandaloneMode();
     }
 }

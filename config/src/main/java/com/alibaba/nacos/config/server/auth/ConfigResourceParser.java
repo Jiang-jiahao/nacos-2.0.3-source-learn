@@ -29,6 +29,7 @@ import java.util.List;
 
 /**
  * Config resource parser.
+ * 配置资源解析器
  *
  * @author nkorange
  * @since 1.2.0

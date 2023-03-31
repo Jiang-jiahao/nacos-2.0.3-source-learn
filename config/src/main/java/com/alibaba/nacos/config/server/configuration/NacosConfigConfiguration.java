@@ -46,18 +46,21 @@ public class NacosConfigConfiguration {
     public NacosWebFilter nacosWebFilter() {
         return new NacosWebFilter();
     }
-    
+
+    // 集群模式下设置了内置存储的情况下才会加载bean
     @Conditional(ConditionDistributedEmbedStorage.class)
     @Bean
     public FilterRegistrationBean transferToLeaderRegistration() {
         FilterRegistrationBean<CurcuitFilter> registration = new FilterRegistrationBean<>();
+        // TODO 这里调用是否会产生两个对象？
         registration.setFilter(transferToLeader());
         registration.addUrlPatterns("/v1/cs/*");
         registration.setName("curcuitFilter");
         registration.setOrder(6);
         return registration;
     }
-    
+
+    // 集群模式下设置了内置存储的情况下才会加载bean
     @Conditional(ConditionDistributedEmbedStorage.class)
     @Bean
     public CurcuitFilter transferToLeader() {

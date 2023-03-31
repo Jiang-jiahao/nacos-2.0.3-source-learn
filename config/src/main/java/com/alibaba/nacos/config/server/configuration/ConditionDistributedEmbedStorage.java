@@ -31,6 +31,7 @@ public class ConditionDistributedEmbedStorage implements Condition {
     
     @Override
     public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+        // 用来判断在集群模式下，是否使用内置的数据库存储
         return PropertyUtil.isEmbeddedStorage() && !EnvUtil.getStandaloneMode();
     }
 }

@@ -30,6 +30,7 @@ public class ConditionOnEmbeddedStorage implements Condition {
     
     @Override
     public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+        // 用来判断是否使用内置数据库存储
         return PropertyUtil.isEmbeddedStorage();
     }
 }
