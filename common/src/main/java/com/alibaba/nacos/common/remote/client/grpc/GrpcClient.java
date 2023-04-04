@@ -160,7 +160,7 @@ public abstract class GrpcClient extends RpcClient {
 
             @Override
             public void onNext(Payload payload) {
-
+                // 接受服务端请求
                 LoggerUtils.printIfDebugEnabled(LOGGER, "[{}]Stream server request receive, original info: {}",
                         grpcConn.getConnectionId(), payload.toString());
                 try {
@@ -169,6 +169,7 @@ public abstract class GrpcClient extends RpcClient {
                     if (request != null) {
 
                         try {
+                            // 处理服务器请求数据
                             Response response = handleServerRequest(request);
                             if (response != null) {
                                 response.setRequestId(request.getRequestId());
@@ -252,6 +253,7 @@ public abstract class GrpcClient extends RpcClient {
     @Override
     public Connection connectToServer(ServerInfo serverInfo) {
         try {
+            // 初始化线程池
             if (grpcExecutor == null) {
                 int threadNumber = ThreadUtils.getSuitableThreadCount(8);
                 grpcExecutor = new ThreadPoolExecutor(threadNumber, threadNumber, 10L, TimeUnit.SECONDS,
