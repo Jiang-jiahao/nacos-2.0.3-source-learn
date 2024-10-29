@@ -126,7 +126,9 @@ public class ProtocolManager extends MemberChangeListener implements DisposableB
         ApplicationUtils.getBeanIfExist(CPProtocol.class, protocol -> {
             Class configType = ClassUtils.resolveGenericType(protocol.getClass());
             Config config = (Config) ApplicationUtils.getBean(configType);
+            // 初始化配置，设置当前节点的raft地址和其它raft地址节点
             injectMembers4CP(config);
+            // 初始化raft协议
             protocol.init((config));
             ProtocolManager.this.cpProtocol = protocol;
         });

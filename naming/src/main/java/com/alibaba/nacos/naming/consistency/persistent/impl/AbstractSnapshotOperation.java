@@ -49,6 +49,7 @@ public abstract class AbstractSnapshotOperation implements SnapshotOperation {
             final Lock lock = writeLock;
             lock.lock();
             try {
+                // 执行实际的快照保存操作，并将结果传递给 callFinally 回调函数
                 callFinally.accept(writeSnapshot(writer), null);
             } catch (Throwable t) {
                 Loggers.RAFT.error("Fail to compress snapshot, path={}, file list={}.", writer.getPath(),

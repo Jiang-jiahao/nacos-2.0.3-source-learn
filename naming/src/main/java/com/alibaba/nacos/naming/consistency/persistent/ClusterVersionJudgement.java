@@ -36,6 +36,7 @@ import java.util.function.Consumer;
  * An automated task that determines whether all nodes in the current cluster meet the requirements of a particular
  * version.
  * 用于确定当前集群中的所有节点是否满足特定版本的要求
+ * TODO 为什么要独立出这个类，UpgradeJudgement类中的all20XVersion和本类重合？
  * <p>This will be removed in a future release, just to smooth the transition.
  *
  * @author <a href="mailto:liaochuntao@live.com">liaochuntao</a>

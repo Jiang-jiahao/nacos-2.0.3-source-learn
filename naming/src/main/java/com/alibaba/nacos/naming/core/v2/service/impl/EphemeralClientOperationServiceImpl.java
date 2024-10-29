@@ -54,6 +54,7 @@ public class EphemeralClientOperationServiceImpl implements ClientOperationServi
         if (!clientIsLegal(client, clientId)) {
             return;
         }
+        // TODO 看这个设计，这里每次都会创建一个实例发布信息对象，假设一个实例注册到不同服务的时候，这里就会创建两个相同内容的实例？
         InstancePublishInfo instanceInfo = getPublishInfo(instance);
         client.addServiceInstance(singleton, instanceInfo);
         // 刷新客户端的最后更新时间（这里clientManager会有定时任务清理过期的client，防止client过期需要更新时间）

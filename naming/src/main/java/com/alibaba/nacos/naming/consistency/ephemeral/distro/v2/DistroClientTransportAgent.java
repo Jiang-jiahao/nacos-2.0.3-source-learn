@@ -92,6 +92,7 @@ public class DistroClientTransportAgent implements DistroTransportAgent {
         DistroDataRequest request = new DistroDataRequest(data, data.getType());
         Member member = memberManager.find(targetServer);
         try {
+            // 发送请求
             clusterRpcClientProxy.asyncRequest(member, request, new DistroRpcCallbackWrapper(callback, member));
         } catch (NacosException nacosException) {
             callback.onFailed(nacosException);
@@ -122,6 +123,7 @@ public class DistroClientTransportAgent implements DistroTransportAgent {
     
     @Override
     public void syncVerifyData(DistroData verifyData, String targetServer, DistroCallback callback) {
+        // 判断是否还存在目标服务器
         if (isNoExistTarget(targetServer)) {
             callback.onSuccess();
             return;
@@ -274,6 +276,7 @@ public class DistroClientTransportAgent implements DistroTransportAgent {
                 distroCallback.onSuccess();
             } else {
                 Loggers.DISTRO.info("Target {} verify client {} failed, sync new client", targetServer, clientId);
+                // 发布验证失败事件
                 NotifyCenter.publishEvent(new ClientEvent.ClientVerifyFailedEvent(clientId, targetServer));
                 NamingTpsMonitor.distroVerifyFail(member.getAddress(), member.getIp());
                 distroCallback.onFailed(null);

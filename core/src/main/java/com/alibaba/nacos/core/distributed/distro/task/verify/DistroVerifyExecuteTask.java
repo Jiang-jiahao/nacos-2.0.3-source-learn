@@ -51,7 +51,7 @@ public class DistroVerifyExecuteTask extends AbstractExecuteTask {
     
     @Override
     public void run() {
-        // 循环数据
+        // 循环发送数据
         for (DistroData each : verifyData) {
             try {
                 // 判断是否支持回调传输数据，http不支持

@@ -63,37 +63,71 @@ public abstract class RpcClient implements Closeable {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("com.alibaba.nacos.common.remote.client");
 
+    /**
+     * 服务器工厂
+     * 作用：在这主要是获取服务器列表的
+     */
     private ServerListFactory serverListFactory;
 
+    /**
+     * rpc连接事件阻塞队列
+     */
     protected LinkedBlockingQueue<ConnectionEvent> eventLinkedBlockingQueue = new LinkedBlockingQueue<ConnectionEvent>();
 
+    /**
+     * rpc客户端状态
+     */
     protected volatile AtomicReference<RpcClientStatus> rpcClientStatus = new AtomicReference<RpcClientStatus>(
             RpcClientStatus.WAIT_INIT);
 
+    /**
+     * 周期性任务线程池
+     */
     protected ScheduledExecutorService clientEventExecutor;
 
+    /**
+     * 重试服务阻塞队列
+     */
     private final BlockingQueue<ReconnectContext> reconnectionSignal = new ArrayBlockingQueue<ReconnectContext>(1);
 
+    /**
+     * 当前rpc连接
+     */
     protected volatile Connection currentConnection;
 
+    /**
+     * 用于标注客户端请求的标签
+     */
     protected Map<String, String> labels = new HashMap<String, String>();
 
     private String name;
 
     private String tenant;
 
+    /**
+     * rpc客户端连接服务器重试次数
+     */
     private static final int RETRY_TIMES = 3;
 
+    /**
+     * rpc客户端请求默认的超时时间
+     */
     private static final long DEFAULT_TIMEOUT_MILLS = 3000L;
 
+    /**
+     * 表示rpc客户端能力的对象
+     */
     protected ClientAbilities clientAbilities;
 
     /**
      * default keep alive time 5s.
-     * 默认保持时间为5s
+     * rpc客户端与服务端连接默认保持时间为5s
      */
     private long keepAliveTime = 5000L;
 
+    /**
+     * rpc客户端与服务端连接最后存活时间
+     */
     private long lastActiveTimeStamp = System.currentTimeMillis();
 
     /**
@@ -274,12 +308,13 @@ public abstract class RpcClient implements Closeable {
      * Start this client.
      */
     public final void start() throws NacosException {
-
+        // 修改rpc客户端状态为STARTING
         boolean success = rpcClientStatus.compareAndSet(RpcClientStatus.INITIALIZED, RpcClientStatus.STARTING);
         if (!success) {
             return;
         }
 
+        // 创建周期性任务线程池
         clientEventExecutor = new ScheduledThreadPoolExecutor(2, new ThreadFactory() {
             @Override
             public Thread newThread(Runnable r) {
@@ -295,9 +330,12 @@ public abstract class RpcClient implements Closeable {
         clientEventExecutor.submit(new Runnable() {
             @Override
             public void run() {
+                // 判断线程池是否被关闭，被关闭则不再执行
                 while (!clientEventExecutor.isTerminated() && !clientEventExecutor.isShutdown()) {
                     ConnectionEvent take = null;
                     try {
+                        // 从连接事件阻塞队列拿连接事件
+                        // 在连接成功时，会往队列中存放连接成功的事件；连接断开时会存放连接断开的事件
                         take = eventLinkedBlockingQueue.take();
                         // 判断rpc客户端是否已经连接
                         if (take.isConnected()) {
@@ -320,7 +358,7 @@ public abstract class RpcClient implements Closeable {
             public void run() {
                 while (true) {
                     try {
-                        // 如果关闭则终止循环
+                        // 如果rpc客户端关闭则终止循环
                         if (isShutdown()) {
                             break;
                         }
@@ -347,23 +385,22 @@ public abstract class RpcClient implements Closeable {
                                             currentConnection.getConnectionId());
 
                                     RpcClientStatus rpcClientStatus = RpcClient.this.rpcClientStatus.get();
-                                    // 这里再次判断rpc客户端是否被关闭，是为了尽量防止状态如果已经是SHUTDOWN状态，之后被修改为UNHEALTHY状态的情况。
-                                    // 客户端关闭就是不使用了，而如果是UNHEALTHY，之后则会发起重连，达不到关闭的要求。
-                                    // TODO 在这个判断条件执行之后，如果状态被修改为SHUTDOWN，还是会产生问题。因为就算是关闭线程池使用了shutdownNow，也是可能会产生无法中断的情况
+                                    // 在发起重连之前，这里再次判断rpc客户端是否被关闭（这里有可能客户端被关闭了，如果不判断的话SHUTDOWN又被改为UNHEALTHY是不合理的）
                                     if (RpcClientStatus.SHUTDOWN.equals(rpcClientStatus)) {
                                         // 如果已经关闭连接，则中断循环
                                         break;
                                     }
-                                    // 设置客户端不健康状态，相当于被服务端关闭，换一个服务端
+                                    // 设置客户端不健康状态（这里必须使用cas来更新，因为此时状态可能被修改了，可能会存在SHUTDOWN->UNHEALTHY）
                                     boolean success = RpcClient.this.rpcClientStatus
                                             .compareAndSet(rpcClientStatus, RpcClientStatus.UNHEALTHY);
+                                    // TODO 这个地方状态可能会变成RUNNING
                                     if (success) {
-                                        // 如果服务端不健康，则设置一个空的重新连接上下文对象（相当于重新选一个随机的server来重连）
+                                        // 如果客户端不健康状态设置成功，则设置一个空的重新连接上下文对象（相当于重新选一个随机的server来重连）
                                         reconnectContext = new ReconnectContext(null, false);
                                     } else {
-                                        // 如果设置失败，表示之前就已经是UNHEALTHY状态了，则直接跳过
-                                        // 因为rpc客户端被设置UNHEALTHY状态的时候，一定会往reconnectionSignal队列中存入一个空的ReconnectContext对象
-                                        // 所以直接跳过，不需要处理。
+                                        // 如果设置失败，表示状态在更新之前发生了改变，则选择重试
+                                        // 可能是状态期间被改为SHUTDOWN了，也可能是状态期间被改为RUNNING
+                                        // 因为在代码①处是先赋值新连接，后修改状态的。可能会出现这个问题，所以这里选择continue
                                         continue;
                                     }
 
@@ -378,11 +415,12 @@ public abstract class RpcClient implements Closeable {
 
                         }
 
-                        // 2、如果ReconnectContext对象是有指定的server，则检查server是否存在，如果不存在则将ReconnectContext设置为空
+                        // 2、有重连的需求，如果ReconnectContext对象是有指定的server，则检查server是否存在，如果不存在则将ReconnectContext设置为空
                         // 之后自己会选取一个server
                         if (reconnectContext.serverInfo != null) {
                             //clear recommend server if server is not in server list.
                             boolean serverExist = false;
+                            // 从serverListFactory中获取服务器列表
                             for (String server : getServerListFactory().getServerList()) {
                                 ServerInfo serverInfo = resolveServerInfo(server);
                                 // 判断服务器是否存在
@@ -415,6 +453,7 @@ public abstract class RpcClient implements Closeable {
         //connect to server ,try to connect to server sync once, async starting if fail.
         // 连接到服务器，尝试连接到服务器同步一次，如果失败异步启动
         Connection connectToServer = null;
+        // TODO 这段我认为没什么必要，在这期间状态是不会被改变的
         rpcClientStatus.set(RpcClientStatus.STARTING);
 
         int startUpRetryTimes = RETRY_TIMES;
@@ -440,7 +479,7 @@ public abstract class RpcClient implements Closeable {
         if (connectToServer != null) {
             LoggerUtils.printIfInfoEnabled(LOGGER, "[{}] Success to connect to server [{}] on start up,connectionId={}",
                     name, connectToServer.serverInfo.getAddress(), connectToServer.getConnectionId());
-            this.currentConnection = connectToServer;
+            this.currentConnection = connectToServer; // ①
             rpcClientStatus.set(RpcClientStatus.RUNNING);
             // 添加连接成功事件
             eventLinkedBlockingQueue.offer(new ConnectionEvent(ConnectionEvent.CONNECTED));
@@ -546,10 +585,21 @@ public abstract class RpcClient implements Closeable {
             AtomicReference<ServerInfo> recommendServer = new AtomicReference<ServerInfo>(recommendServerInfo);
             // 判断服务端是否健康，当前请求是否失败
             // onRequestFail为true，则表示rpc请求失败了，如果请求失败了，之后再次检查server是否健康
+            // 如果是false，则可能是服务端的重连请求，则不再检查服务端的健康状态
             // 如果健康，则重新设置回RUNNING状态，不继续进行重连行为
             if (onRequestFail && healthCheck()) {
                 LoggerUtils.printIfInfoEnabled(LOGGER, "[{}] Server check success,currentServer is{} ", name,
                         currentConnection.serverInfo.getAddress());
+                // 有可能会出现这样的情况，在shutdown方法中设置状态为SHUTDOWN之后，这里还会继续执行改为RUNNING。但是实际上也只是状态的改变，关闭线程池之后不会影响
+                // 之前修改状态代码如下：
+                // RpcClientStatus rpcClientStatus = RpcClient.this.rpcClientStatus.get();
+                // if (RpcClientStatus.SHUTDOWN.equals(rpcClientStatus)) {
+                //     break;
+                // }
+                // boolean success = RpcClient.this.rpcClientStatus.compareAndSet(rpcClientStatus, RpcClientStatus.UNHEALTHY);
+                // 使用cas来保证状态是因为是怕在关闭线程池之后还创建了重连对象，之后因为状态是UNHEALTHY，还会继续往下执行重连的操作，
+                // 因为rpc连接被关闭后再次调用该连接去访问服务器会导致后续一些资源浪费（比如说关闭之前又创建了rpc连接，浪费性能）。
+                // 而这里但存的将状态改为RUNNING是不会产生这些的，虽然会导致最后状态有问题，但是最后还是关闭了，不会影响。
                 rpcClientStatus.set(RpcClientStatus.RUNNING);
                 return;
             }
@@ -886,7 +936,7 @@ public abstract class RpcClient implements Closeable {
         LoggerUtils.printIfInfoEnabled(LOGGER, "[{}]receive server push request,request={},requestId={}", name,
                 request.getClass().getSimpleName(), request.getRequestId());
         lastActiveTimeStamp = System.currentTimeMillis();
-        // 处理来自服务器端的请求
+        // 处理来自服务器端匹配的请求
         for (ServerRequestHandler serverRequestHandler : serverRequestHandlers) {
             try {
                 Response response = serverRequestHandler.requestReply(request);

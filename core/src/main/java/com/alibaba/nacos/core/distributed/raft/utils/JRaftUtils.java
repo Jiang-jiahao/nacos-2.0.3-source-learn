@@ -62,6 +62,7 @@ import java.util.stream.Collectors;
 public class JRaftUtils {
     
     public static RpcServer initRpcServer(JRaftServer server, PeerId peerId) {
+        // 获取grpc的工厂
         GrpcRaftRpcFactory raftRpcFactory = (GrpcRaftRpcFactory) RpcFactoryHelper.rpcFactory();
         raftRpcFactory.registerProtobufSerializer(Log.class.getName(), Log.getDefaultInstance());
         raftRpcFactory.registerProtobufSerializer(GetRequest.class.getName(), GetRequest.getDefaultInstance());
@@ -75,12 +76,13 @@ public class JRaftUtils {
     
         registry.registerResponseInstance(WriteRequest.class.getName(), Response.getDefaultInstance());
         registry.registerResponseInstance(ReadRequest.class.getName(), Response.getDefaultInstance());
-        
+        // 创建grpc服务端对象
         final RpcServer rpcServer = raftRpcFactory.createRpcServer(peerId.getEndpoint());
         RaftRpcServerFactory.addRaftRequestProcessors(rpcServer, RaftExecutor.getRaftCoreExecutor(),
                 RaftExecutor.getRaftCliServiceExecutor());
         
         // Deprecated
+        // 注册了之后，调用对于的请求会调用对应processor的handleRequest方法
         rpcServer.registerProcessor(new NacosLogProcessor(server, SerializeFactory.getDefault()));
         // Deprecated
         rpcServer.registerProcessor(new NacosGetRequestProcessor(server, SerializeFactory.getDefault()));

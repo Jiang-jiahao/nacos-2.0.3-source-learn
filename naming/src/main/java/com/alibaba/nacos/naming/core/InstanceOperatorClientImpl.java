@@ -98,7 +98,7 @@ public class InstanceOperatorClientImpl implements InstanceOperator {
     @Override
     public void registerInstance(String namespaceId, String serviceName, Instance instance) {
         boolean ephemeral = instance.isEphemeral();
-        // 获取对应的clientId-本质就是ip的地址加上"#"和是否临时实例的标志
+        // 获取对应的clientId-本质就是ip:port之后加上"#"和是否临时实例的标志
         String clientId = IpPortBasedClient.getClientId(instance.toInetAddr(), ephemeral);
         // 如果clientId不存在，则创建对应的client添加到clientMapper中
         createIpPortClientIfAbsent(clientId);

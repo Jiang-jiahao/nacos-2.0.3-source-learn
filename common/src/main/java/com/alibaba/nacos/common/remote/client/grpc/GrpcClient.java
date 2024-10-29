@@ -282,7 +282,6 @@ public abstract class GrpcClient extends RpcClient {
 
                 //create stream request and bind connection event to this connection.
                 // 创建stream观察者，将响应发送到服务器，到时候返回时会执行自定义的响应方法
-                // TODO 测试一下
                 StreamObserver<Payload> payloadStreamObserver = bindRequestStream(biRequestStreamStub, grpcConn);
 
                 // stream observer to send response to server
@@ -290,7 +289,7 @@ public abstract class GrpcClient extends RpcClient {
                 grpcConn.setGrpcFutureServiceStub(newChannelStubTemp);
                 grpcConn.setChannel((ManagedChannel) newChannelStubTemp.getChannel());
                 //send a  setup request.
-                // 构建请求数据
+                // 构建请求数据（用于注册到服务端的connectionManager中）
                 ConnectionSetupRequest conSetupRequest = new ConnectionSetupRequest();
                 conSetupRequest.setClientVersion(VersionUtils.getFullClientVersion());
                 conSetupRequest.setLabels(super.getLabels());

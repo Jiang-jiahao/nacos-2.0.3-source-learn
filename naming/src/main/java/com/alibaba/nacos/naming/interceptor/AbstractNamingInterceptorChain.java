@@ -60,10 +60,12 @@ public abstract class AbstractNamingInterceptorChain<T extends Interceptable>
                 continue;
             }
             if (each.intercept(object)) {
+                // 执行拦截后，执行afterIntercept方法
                 object.afterIntercept();
                 return;
             }
         }
+        // 执行跳过拦截方法
         object.passIntercept();
     }
 }

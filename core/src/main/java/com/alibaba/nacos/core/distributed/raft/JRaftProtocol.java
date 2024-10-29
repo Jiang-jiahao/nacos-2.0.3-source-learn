@@ -121,6 +121,7 @@ public class JRaftProtocol extends AbstractConsistencyProtocol<RaftConfig, Reque
 
     @Override
     public void init(RaftConfig config) {
+        // 修改初始化状态
         if (initialized.compareAndSet(false, true)) {
             this.raftConfig = config;
             // 向通知中心注册raft事件发布器

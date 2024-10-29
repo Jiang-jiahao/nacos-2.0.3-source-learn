@@ -46,6 +46,7 @@ import javax.sql.DataSource;
 
 /**
  * Derby Snapshot operation.
+ * derby快照操作
  *
  * @author <a href="mailto:liaochuntao@live.com">liaochuntao</a>
  */

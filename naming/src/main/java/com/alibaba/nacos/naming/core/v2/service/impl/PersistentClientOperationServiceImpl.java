@@ -101,6 +101,7 @@ public class PersistentClientOperationServiceImpl extends RequestProcessor4CP im
         request.setService(service);
         request.setInstance(instance);
         request.setClientId(clientId);
+        // 构建request请求
         final WriteRequest writeRequest = WriteRequest.newBuilder().setGroup(group())
                 .setData(ByteString.copyFrom(serializer.serialize(request))).setOperation(DataOperation.ADD.name())
                 .build();
@@ -151,6 +152,7 @@ public class PersistentClientOperationServiceImpl extends RequestProcessor4CP im
         final Lock lock = readLock;
         lock.lock();
         try {
+            // 判断是上面类型的操作
             switch (operation) {
                 case ADD:
                     onInstanceRegister(instanceRequest.service, instanceRequest.instance,
@@ -253,11 +255,15 @@ public class PersistentClientOperationServiceImpl extends RequestProcessor4CP im
         @Override
         protected boolean writeSnapshot(Writer writer) throws IOException {
             final String writePath = writer.getPath();
+            // 构建出输出目录
             final String outputFile = Paths.get(writePath, SNAPSHOT_ARCHIVE).toString();
             final Checksum checksum = new CRC64();
+            // 获取要保存的数据流
             try (InputStream inputStream = dumpSnapshot()) {
+                // 创建zip文件，保存着对应的流数据
                 DiskUtils.compressIntoZipFile("instance", inputStream, outputFile, checksum);
             }
+            // 创建元数据并添加
             final LocalFileMeta meta = new LocalFileMeta();
             meta.append(CHECK_SUM_KEY, Long.toHexString(checksum.getValue()));
             return writer.addFile(SNAPSHOT_ARCHIVE, meta);
@@ -266,15 +272,19 @@ public class PersistentClientOperationServiceImpl extends RequestProcessor4CP im
         @Override
         protected boolean readSnapshot(Reader reader) throws Exception {
             final String readerPath = reader.getPath();
+            // 获取目标snapshot压缩文件路径
             final String sourceFile = Paths.get(readerPath, SNAPSHOT_ARCHIVE).toString();
             final Checksum checksum = new CRC64();
+            // 解压snapshot压缩文件
             byte[] snapshotBytes = DiskUtils.decompress(sourceFile, checksum);
             LocalFileMeta fileMeta = reader.getFileMeta(SNAPSHOT_ARCHIVE);
+            // 判断期间内容是否发生了改变
             if (fileMeta.getFileMeta().containsKey(CHECK_SUM_KEY)) {
                 if (!Objects.equals(Long.toHexString(checksum.getValue()), fileMeta.get(CHECK_SUM_KEY))) {
                     throw new IllegalArgumentException("Snapshot checksum failed");
                 }
             }
+            // 如果没有发生改变，则加载snapshot
             loadSnapshot(snapshotBytes);
             return true;
         }
@@ -289,8 +299,10 @@ public class PersistentClientOperationServiceImpl extends RequestProcessor4CP im
         }
         
         protected void loadSnapshot(byte[] snapshotBytes) {
+            // 反序列化
             ConcurrentHashMap<String, ClientSyncData> newData = serializer.deserialize(snapshotBytes);
             ConcurrentHashMap<String, IpPortBasedClient> snapshot = new ConcurrentHashMap<>(newData.size());
+            // 循环创建对应的数据
             for (Map.Entry<String, ClientSyncData> entry : newData.entrySet()) {
                 IpPortBasedClient snapshotClient = new IpPortBasedClient(entry.getKey(), false);
                 snapshotClient.init();

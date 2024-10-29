@@ -108,10 +108,12 @@ public class DistroClientDataProcessor extends SmartSubscriber implements Distro
     }
     
     private void syncToVerifyFailedServer(ClientEvent.ClientVerifyFailedEvent event) {
+        // 判断客户端是否存在
         Client client = clientManager.getClient(event.getClientId());
         if (null == client || !client.isEphemeral() || !clientManager.isResponsibleClient(client)) {
             return;
         }
+        // 如果存在，则开始进行同步
         DistroKey distroKey = new DistroKey(client.getClientId(), TYPE);
         // Verify failed data should be sync directly.
         distroProtocol.syncToTarget(distroKey, DataOperation.ADD, event.getTargetServer(), 0L);
@@ -161,6 +163,7 @@ public class DistroClientDataProcessor extends SmartSubscriber implements Distro
         Loggers.DISTRO.info("[Client-Add] Received distro client sync data {}", clientSyncData.getClientId());
         clientManager.syncClientConnected(clientSyncData.getClientId(), clientSyncData.getAttributes());
         Client client = clientManager.getClient(clientSyncData.getClientId());
+        // ConnectionBasedClient会跳过这个，因为instancePublishInfos没有数据
         upgradeClient(client, clientSyncData);
     }
     
@@ -175,6 +178,7 @@ public class DistroClientDataProcessor extends SmartSubscriber implements Distro
             Service singleton = ServiceManager.getInstance().getSingleton(service);
             syncedService.add(singleton);
             InstancePublishInfo instancePublishInfo = instances.get(i);
+            // 判断原来实例是否就存在
             if (!instancePublishInfo.equals(client.getInstancePublishInfo(singleton))) {
                 client.addServiceInstance(singleton, instancePublishInfo);
                 NotifyCenter.publishEvent(
@@ -194,6 +198,7 @@ public class DistroClientDataProcessor extends SmartSubscriber implements Distro
     public boolean processVerifyData(DistroData distroData, String sourceAddress) {
         DistroClientVerifyInfo verifyData = ApplicationUtils.getBean(Serializer.class)
                 .deserialize(distroData.getContent(), DistroClientVerifyInfo.class);
+        // 根据clientId来验证不同的客户端
         if (clientManager.verifyClient(verifyData.getClientId())) {
             return true;
         }
@@ -240,11 +245,13 @@ public class DistroClientDataProcessor extends SmartSubscriber implements Distro
     @Override
     public List<DistroData> getVerifyData() {
         List<DistroData> result = new LinkedList<>();
+        // 获取所有的clientId，遍历各个client
         for (String each : clientManager.allClientId()) {
             Client client = clientManager.getClient(each);
             if (null == client || !client.isEphemeral()) {
                 continue;
             }
+            // 这里的client也可能是ConnectionBasedClient，不可能是持久化的IpPortBasedClient
             if (clientManager.isResponsibleClient(client)) {
                 // TODO add revision for client.
                 DistroClientVerifyInfo verifyData = new DistroClientVerifyInfo(client.getClientId(), 0);

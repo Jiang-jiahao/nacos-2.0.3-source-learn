@@ -65,7 +65,7 @@ public abstract class AbstractClient implements Client {
             // 表示新添加的，统计数据
             MetricsMonitor.incrementInstanceCount();
         }
-        // 同步到目标服务器，这里的change事件是不作处理的
+        // 同步到目标服务器
         NotifyCenter.publishEvent(new ClientEvent.ClientChangedEvent(this));
         Loggers.SRV_LOG.info("Client change for service {}, {}", service, getClientId());
         return true;

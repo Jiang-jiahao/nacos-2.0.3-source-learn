@@ -125,8 +125,8 @@ public class GrpcBiStreamRequestAcceptor extends BiRequestStreamGrpc.BiRequestSt
                     connection.setAbilities(setUpRequest.getAbilities());
                     boolean rejectSdkOnStarting = metaInfo.isSdkSource() && !ApplicationUtils.isStarted();
                     // 需要重连的情况有如下：
-                    // 1、客户端是sdk单机的，并且没有启动完成
-                    // 2、客户端是sdk单机的，启动完成了，但是注册失败
+                    // 1、客户端是sdk单机的，并且nacos服务没有启动完成
+                    // 2、客户端是sdk单机的，并且nacos服务启动完成了，但是注册失败
                     // 3、客户端是集群的，不管有没有启动完成，但是注册失败
                     if (rejectSdkOnStarting || !connectionManager.register(connectionId, connection)) {
                         //Not register to the connection manager if current server is over limit or server is starting.

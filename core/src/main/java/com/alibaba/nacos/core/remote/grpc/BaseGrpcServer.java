@@ -106,7 +106,8 @@ public abstract class BaseGrpcServer extends BaseRpcServer {
                 return Contexts.interceptCall(ctx, call, headers, next);
             }
         };
-        
+
+        // 添加rpc服务
         addServices(handlerRegistry, serverInterceptor);
         
         server = ServerBuilder.forPort(getServicePort()).executor(getRpcExecutor())

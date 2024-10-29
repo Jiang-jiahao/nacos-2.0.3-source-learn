@@ -170,24 +170,32 @@ public class JRaftServer {
         String[] info = InternetAddressUtil.splitIPPortStr(self);
         selfIp = info[0];
         selfPort = Integer.parseInt(info[1]);
-        // 表示一个 raft 参与节点
+        // 本地的 raft 节点
         localPeerId = PeerId.parsePeer(self);
         nodeOptions = new NodeOptions();
 
         // Set the election timeout time. The default is 5 seconds.
+        // 设置选举超时时间，默认为5秒
         int electionTimeout = Math.max(ConvertUtils.toInt(config.getVal(RaftSysConstants.RAFT_ELECTION_TIMEOUT_MS),
                 RaftSysConstants.DEFAULT_ELECTION_TIMEOUT), RaftSysConstants.DEFAULT_ELECTION_TIMEOUT);
 
+        // 设置rpc请求超时时间
         rpcRequestTimeoutMs = ConvertUtils.toInt(raftConfig.getVal(RaftSysConstants.RAFT_RPC_REQUEST_TIMEOUT_MS),
                 RaftSysConstants.DEFAULT_RAFT_RPC_REQUEST_TIMEOUT_MS);
 
+        // 启用共享的选举定时器。在Raft协议中，选举定时器用于定期检查是否需要发起选举
         nodeOptions.setSharedElectionTimer(true);
+        // 启用共享的投票定时器。在Raft协议中，投票定时器用于在候选者状态下等待其它节点投票响应的超时时间
         nodeOptions.setSharedVoteTimer(true);
+        // 启用共享的部下计时器。当成为领导者需要等待其他节点的确认信息。如果该节点希望获得领导者地位，就需要在规定的时间内接收到足够多的确认信息。
+        // 如果在规定的时间内没有收到足够的确认信息，共享步下计时器就会触发超时事件，该节点将会放弃领导者地位，并重新参与选举过程
         nodeOptions.setSharedStepDownTimer(true);
+        // 启用共享的快照计时器。在 Jraft 中，当日志条目变得太多或太大以至于不能再继续添加新的日志条目时，需要对状态机进行快照操作
+        // SharedSnapshotTimer用来控制快照操作的超时和重试
         nodeOptions.setSharedSnapshotTimer(true);
         // 一个 follower 当超过这个设定时间没有收到 leader 的消息后，变成 candidate 节点的时间。
         // leader 会在 electionTimeoutMs 时间内向 follower 发消息（心跳或者复制日志），如果没有收到，
-        // follower 就需要进入 candidate状态，发起选举或者等待新的 leader 出现，默认1秒。
+        // follower 就需要进入 candixdate状态，发起选举或者等待新的 leader 出现，默认5秒。
         nodeOptions.setElectionTimeoutMs(electionTimeout);
         RaftOptions raftOptions = RaftOptionsBuilder.initRaftOptions(raftConfig);
         // Raft 内部实现的一些配置信息，特别是性能相关
@@ -214,16 +222,18 @@ public class JRaftServer {
                     conf.addPeer(peerId);
                     raftNodeManager.addAddress(peerId.getEndpoint());
                 }
+                // 设置初始集群配置
                 nodeOptions.setInitialConf(conf);
-                // 初始化本地节点的rpc服务
+                // 初始化本地节点的rpc服务，注册了几种request的processor
                 rpcServer = JRaftUtils.initRpcServer(this, localPeerId);
-
+                // 启动grpc服务端
                 if (!this.rpcServer.init(null)) {
                     Loggers.RAFT.error("Fail to init [BaseRpcServer].");
                     throw new RuntimeException("Fail to init [BaseRpcServer].");
                 }
 
                 // Initialize multi raft group service framework
+                // 初始化多组raft服务框架
                 isStarted = true;
                 createMultiRaftGroup(processors);
                 Loggers.RAFT.info("========= The raft protocol start finished... =========");
@@ -250,38 +260,46 @@ public class JRaftServer {
             }
 
             // Ensure that each Raft Group has its own configuration and NodeOptions
+            // 确保每个Raft Group都有自己的配置和NodeOptions
             Configuration configuration = conf.copy();
             NodeOptions copy = nodeOptions.copy();
+            // 创建对应分组的节点文件
             JRaftUtils.initDirectory(parentPath, groupName, copy);
 
             // Here, the LogProcessor is passed into StateMachine, and when the StateMachine
             // triggers onApply, the onApply of the LogProcessor is actually called
+            // processor被传递给NacosStateMachine，当NacosStateMachine触发onApply时，processor的onApply被实际调用
             NacosStateMachine machine = new NacosStateMachine(this, processor);
 
             copy.setFsm(machine);
             copy.setInitialConf(configuration);
 
             // Set snapshot interval, default 1800 seconds
+            // 设置快照时间间隔，默认为1800秒
             int doSnapshotInterval = ConvertUtils.toInt(raftConfig.getVal(RaftSysConstants.RAFT_SNAPSHOT_INTERVAL_SECS),
                     RaftSysConstants.DEFAULT_RAFT_SNAPSHOT_INTERVAL_SECS);
 
             // If the business module does not implement a snapshot processor, cancel the snapshot
+            // 如果业务模块没有实现快照处理器，则取消快照
             doSnapshotInterval = CollectionUtils.isEmpty(processor.loadSnapshotOperate()) ? 0 : doSnapshotInterval;
-
-            copy.setSnapshotIntervalSecs(doSnapshotInterval);
+            // 这个地方设置了保存快照间隔并不是每隔这么时间一定会执行，还会看日志条目数和大小
+            copy.setSnapshotIntervalSecs(2);
             Loggers.RAFT.info("create raft group : {}", groupName);
             RaftGroupService raftGroupService = new RaftGroupService(groupName, localPeerId, copy, rpcServer, true);
 
             // Because BaseRpcServer has been started before, it is not allowed to start again here
+            // 因为BaseRpcServer之前执行init方法的时候已经启动过，所以不允许在这里再次启动
             Node node = raftGroupService.start(false);
             machine.setNode(node);
+            // 更新路由表分组的配置信息，以便其它节点获取最新的配置
             RouteTable.getInstance().updateConfiguration(groupName, configuration);
-
+            // 注册本地节点到leader节点的NodeManager中
             RaftExecutor.executeByCommon(() -> registerSelfToCluster(groupName, localPeerId, configuration));
 
             // Turn on the leader auto refresh for this group
             Random random = new Random();
             long period = nodeOptions.getElectionTimeoutMs() + random.nextInt(5 * 1000);
+            // 刷新路由表和leader
             RaftExecutor.scheduleRaftMemberRefreshJob(() -> refreshRouteTable(groupName),
                     nodeOptions.getElectionTimeoutMs(), period, TimeUnit.MILLISECONDS);
             multiRaftGroup.put(groupName, new RaftGroupTuple(node, processor, raftGroupService, machine));
@@ -304,9 +322,11 @@ public class JRaftServer {
                 public void run(Status status, long index, byte[] reqCtx) {
                     if (status.isOk()) {
                         try {
+                            // 调用处理器处理请求
                             Response response = processor.onRequest(request);
                             future.complete(response);
                         } catch (Throwable t) {
+                            // 处理过程中出现异常，记录指标并将异常作为结果完成
                             MetricsMonitor.raftReadIndexFailed();
                             future.completeExceptionally(new ConsistencyException(
                                     "The conformance protocol is temporarily unavailable for reading", t));
@@ -354,6 +374,7 @@ public class JRaftServer {
     public CompletableFuture<Response> commit(final String group, final Message data,
             final CompletableFuture<Response> future) {
         LoggerUtils.printIfDebugEnabled(Loggers.RAFT, "data requested this time : {}", data);
+        // 获取到对应组的数据
         final RaftGroupTuple tuple = findTupleByGroup(group);
         if (tuple == null) {
             future.completeExceptionally(new IllegalArgumentException("No corresponding Raft Group found : " + group));
@@ -365,9 +386,11 @@ public class JRaftServer {
         final Node node = tuple.node;
         if (node.isLeader()) {
             // The leader node directly applies this request
+            // 如果当前节点是leader，则提交任务直接给其它节点同步日志
             applyOperation(node, data, closure);
         } else {
             // Forward to Leader for request processing
+            // 如果当前节点不是leader，则提交给leader处理
             invokeToLeader(group, data, rpcRequestTimeoutMs, closure);
         }
         return future;
@@ -439,8 +462,10 @@ public class JRaftServer {
     private void invokeToLeader(final String group, final Message request, final int timeoutMillis,
             FailoverClosure closure) {
         try {
+            // 获取到leader的endpoint
             final Endpoint leaderIp = Optional.ofNullable(getLeader(group))
                     .orElseThrow(() -> new NoLeaderException(group)).getEndpoint();
+            // 利用grpc客户端发送请求到leader节点
             cliClientService.getRpcClient().invokeAsync(leaderIp, request, new InvokeCallback() {
                 @Override
                 public void complete(Object o, Throwable ex) {
@@ -502,7 +527,9 @@ public class JRaftServer {
         Status status = null;
         try {
             RouteTable instance = RouteTable.getInstance();
+            // 获取路由表配置数据
             Configuration oldConf = instance.getConfiguration(groupName);
+            // 获取该分组下的leader
             String oldLeader = Optional.ofNullable(instance.selectLeader(groupName)).orElse(PeerId.emptyPeer())
                     .getEndpoint().toString();
             // fix issue #3661  https://github.com/alibaba/nacos/issues/3661

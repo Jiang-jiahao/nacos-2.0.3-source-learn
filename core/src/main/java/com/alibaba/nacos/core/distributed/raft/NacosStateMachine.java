@@ -101,16 +101,19 @@ class NacosStateMachine extends StateMachineAdapter {
             while (iter.hasNext()) {
                 Status status = Status.OK();
                 try {
+                    // done 回调不为null，必须在应用日志后调用，如果不为 null，说明当前是leader。
                     if (iter.done() != null) {
+                        // 当前是leader，可以直接从 NacosClosure 中获取 message，避免反序列化
                         closure = (NacosClosure) iter.done();
                         message = closure.getMessage();
                     } else {
+                        // 当前不是leader，则反序列化数据
                         final ByteBuffer data = iter.getData();
                         message = ProtoMessageUtil.parse(data.array());
                     }
                     
                     LoggerUtils.printIfDebugEnabled(Loggers.RAFT, "receive log : {}", message);
-                    
+                    // 如果是写请求，调用对应处理器的onApply方法
                     if (message instanceof WriteRequest) {
                         Response response = processor.onApply((WriteRequest) message);
                         postProcessor(response, closure);
@@ -144,9 +147,17 @@ class NacosStateMachine extends StateMachineAdapter {
     public void setNode(Node node) {
         this.node = node;
     }
-    
+
+    /**
+     * 定期保存 snapshot
+     * @param writer snapshot writer
+     * @param done   callback
+     */
     @Override
     public void onSnapshotSave(SnapshotWriter writer, Closure done) {
+        // 当状态机的最后应用索引与上次快照索引相等时，意味着没有新的日志需要被快照保存，因为状态机已经将所有日志应用到当前状态中。
+        // 这种情况下，不会执行onSnapshotSave方法
+        // writer中的路径是nodeOption配置+自动拼接的temp
         for (JSnapshotOperation operation : operations) {
             try {
                 operation.onSnapshotSave(writer, done);
@@ -157,9 +168,15 @@ class NacosStateMachine extends StateMachineAdapter {
             }
         }
     }
-    
+
+    /**
+     * 启动或者安装 snapshot 后加载 snapshot
+     * @param reader snapshot reader
+     * @return
+     */
     @Override
     public boolean onSnapshotLoad(SnapshotReader reader) {
+        // 这里reader的snapshot加载路径是从nodeOption的配置而来的
         for (JSnapshotOperation operation : operations) {
             try {
                 if (!operation.onSnapshotLoad(reader)) {
@@ -265,15 +282,18 @@ class NacosStateMachine extends StateMachineAdapter {
                         int[] index = new int[] {0};
                         wCtx.listFiles().forEach((file, meta) -> {
                             try {
+                                // 之后会创建对应snapshot的__raft_snapshot_meta文件存放元数据
                                 results[index[0]++] = writer.addFile(file, buildMetadata(meta));
                             } catch (Exception e) {
                                 throw new ConsistencyException(e);
                             }
                         });
+                        // 根据快照文件添加结果确定状态
                         final Status status = result
                                 && !Arrays.asList(results).stream().anyMatch(Boolean.FALSE::equals) ? Status.OK()
                                 : new Status(RaftError.EIO, "Fail to compress snapshot at %s, error is %s",
                                         writer.getPath(), t == null ? "" : t.getMessage());
+                        // 执行done以表示快照保存完成
                         done.run(status);
                     };
                     item.onSnapshotSave(wCtx, callFinally);
@@ -281,6 +301,7 @@ class NacosStateMachine extends StateMachineAdapter {
                 
                 @Override
                 public boolean onSnapshotLoad(SnapshotReader reader) {
+                    // reader中的文件数据是从对应的snapshot的__raft_snapshot_meta文件加载得来的
                     final Map<String, LocalFileMeta> metaMap = new HashMap<>(reader.listFiles().size());
                     for (String fileName : reader.listFiles()) {
                         final LocalFileMetaOutter.LocalFileMeta meta = (LocalFileMetaOutter.LocalFileMeta) reader

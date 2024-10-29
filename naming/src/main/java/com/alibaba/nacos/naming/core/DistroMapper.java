@@ -91,7 +91,8 @@ public class DistroMapper extends MemberChangeListener {
             // 表示需要处理这个服务
             return true;
         }
-        
+
+        // 如果健康节点列表为空，则说明分布式配置还没有准备好，返回 false
         if (CollectionUtils.isEmpty(servers)) {
             // means distro config is not ready yet
             return false;
@@ -99,12 +100,14 @@ public class DistroMapper extends MemberChangeListener {
         // 参考https://github.com/alibaba/nacos/issues/5902
         int index = servers.indexOf(EnvUtil.getLocalAddress());
         int lastIndex = servers.lastIndexOf(EnvUtil.getLocalAddress());
-        //要是本机ip+port在注册的集群中不存在，则直接返回true
+        // 要是本机不在健康的服务器列表，则直接返回true
+        // TODO 当本地节点不健康的时候，这个时候所有的数据都是需要处理校验的，直接返回true
         if (lastIndex < 0 || index < 0) {
             return true;
         }
-        // TODO 这里根据标签拿，target是不会改变的，如果集合顺序发生改变会不会出问题
+        // 计算标签对应的散列值，然后将它对健康节点数量取模，得到映射到的节点位置
         int target = distroHash(responsibleTag) % servers.size();
+        // 如果当前节点的位置在映射节点位置的左边，或者在映射节点位置的右边，也就是说不是属于本机，则不需要处理该服务
         return target >= index && target <= lastIndex;
     }
     

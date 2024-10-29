@@ -424,6 +424,7 @@ public class ConnectionManager extends Subscriber<ConnectionLimitRuleChangeEvent
                                 Connection connection = getConnection(outDateConnectionId);
                                 if (connection != null) {
                                     ClientDetectionRequest clientDetectionRequest = new ClientDetectionRequest();
+                                    // 探测客户端连接是否还存活
                                     connection.asyncRequest(clientDetectionRequest, new RequestCallBack() {
                                         @Override
                                         public Executor getExecutor() {

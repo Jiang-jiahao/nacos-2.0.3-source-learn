@@ -42,15 +42,19 @@ public abstract class AbstractProcessor {
     
     protected void handleRequest(final JRaftServer server, final String group, final RpcContext rpcCtx, Message message) {
         try {
+            // 获取当前group的节点
             final JRaftServer.RaftGroupTuple tuple = server.findTupleByGroup(group);
             if (Objects.isNull(tuple)) {
                 rpcCtx.sendResponse(Response.newBuilder().setSuccess(false)
                         .setErrMsg("Could not find the corresponding Raft Group : " + group).build());
                 return;
             }
+            // 判断当前节点是否是leader
             if (tuple.getNode().isLeader()) {
+                // 如果是leader则提交任务给其它节点同步日志
                 execute(server, rpcCtx, message, tuple);
             } else {
+                // 如果不是leader则直接返回错误
                 rpcCtx.sendResponse(
                         Response.newBuilder().setSuccess(false).setErrMsg("Could not find leader : " + group).build());
             }

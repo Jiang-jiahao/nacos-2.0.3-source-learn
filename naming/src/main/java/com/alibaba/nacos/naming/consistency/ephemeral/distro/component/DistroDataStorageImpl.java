@@ -89,6 +89,8 @@ public class DistroDataStorageImpl implements DistroDataStorage {
     @Override
     public List<DistroData> getVerifyData() {
         // If upgrade to 2.0.X, do not verify for v1.
+        // 当集群升级到2.0版本的时候，这里就不进行校验了，因为之后都是v2的数据了
+        // TODO 这个地方如果v1数据其中一个节点新增数据，还没来得及校验，就马上升级会产生问题吧
         if (ApplicationUtils.getBean(UpgradeJudgement.class).isUseGrpcFeatures()) {
             return Collections.emptyList();
         }
